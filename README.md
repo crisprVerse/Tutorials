@@ -13,3 +13,4 @@
 - Working with a custom sequence
 - Mapping gRNAs across species
 - Working with minor and major alleles
+- Validating_Existing_gRNA_Libraries
