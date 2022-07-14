@@ -1,5 +1,6 @@
 ## List of tutorials
 
+- Installation
 - Building genome indexes 
 - Building a gene annotation object
 - Building a custom nuclease object
