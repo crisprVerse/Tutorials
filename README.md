@@ -28,3 +28,7 @@
 14. Mapping gRNAs across species
 15. Working with minor and major alleles
 16. Validating existing gRNA libraries
+
+### Building a genome-wide database for a given nuclease
+
+
