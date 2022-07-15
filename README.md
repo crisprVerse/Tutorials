@@ -23,7 +23,7 @@
 12. Paired gRNA design (nickases)
 13. Working with a custom sequence
 
-### Examples of use cases
+### Miscellaneous
 
 14. Mapping gRNAs across species
 15. Working with minor and major alleles
