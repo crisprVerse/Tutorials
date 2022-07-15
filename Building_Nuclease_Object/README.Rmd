@@ -1,5 +1,5 @@
 ---
-title: "Base functions and classes for CRISPR gRNA design"
+title: "Building a nuclease object"
 output: 
   github_document:
     toc: true
