@@ -1,5 +1,8 @@
 # List of tutorials
 
+
+# Lexicon
+
 ### Getting started 
 
 0. Overview
@@ -31,4 +34,5 @@
 
 ### Building a genome-wide database for a given nuclease
 
+17. Building a database for the human genome using Cas9
 

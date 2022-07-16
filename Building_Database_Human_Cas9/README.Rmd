@@ -1,0 +1,120 @@
+---
+title: "Building a gRNA database for the human genome using Cas9"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r, echo=FALSE, results="hide"}
+options("knitr.graphics.auto_pdf"=TRUE)
+```
+
+Authors: Jean-Philippe Fortin
+
+Date: July 16, 2022
+
+
+# Introduction
+
+
+# Loading necessary packages
+
+```{r, warning=FALSE, message=FALSE}
+library(crisprDesign)
+library(crisprDesignData)
+library(crisprBase)
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+
+
+### Specifying the genome
+
+
+```{r}
+bsgenome <- BSgenome.Hsapiens.UCSC.hg38
+```
+
+### Specifying the genome index
+
+```{r}
+bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
+```
+
+### Specifying a SNP VCF file
+
+```{r}
+vcf <- "/Users/fortinj2/crisprIndices/snps/dbsnp151.grch38/00-common_all.vcf.gz"
+```
+
+### Specifying the nuclease
+
+```{r}
+data(SpCas9, package="crisprBase")
+crisprNuclease=SpCas9
+```
+
+### Specifying on-target scoring methods
+
+```{r}
+scoring_methods=c("crisprscan", "ruleset1")
+```
+
+
+### Specifying gene models and TSS annotations
+
+The package `crisprDesignData` contains already-processed Ensembl objects for gene annotation of human and mouse gRNAs that are needed:
+
+```{r, warning=FALSE, message=FALSE}
+data(txdb_human, package="crisprDesignData")
+data(tss_human, package="crisprDesignData")
+data(gr.repeats.hg38, package="crisprDesignData")
+txObject <- txdb_human
+tssObject <- tss_human
+grRepeats <- gr.repeats.hg38
+```
+
+
+# Building a complete annotation for a given gene 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(crisprScoreData)
+library(ExperimentHub)
+library(AnnotationHub)
+library(BiocFileCache)
+library(dbplyr)
+```
+
+```{r, warning=FALSE}
+gs <- precomputeGuides("ENSG00000133703",
+                       modality="CRISPRko",
+                       bsgenome=bsgenome,
+                       bowtie_index=bowtie_index,
+                       crisprNuclease=SpCas9,
+                       txObject=txObject,
+                       tssObject=tssObject,
+                       grRepeats=grRepeats,
+                       vcf=vcf,
+                       n_mismatches=1,
+                       scoring_methods=scoring_methods)
+```
+
+
+
+```{r}
+gs
+```
+
+### Flattening
+
+```{r}
+tables <- flattenGuideSet(gs)
+head(tables)
+```
+
+                         
+# Reproducibility
+
+```{r}
+sessionInfo()
+```
