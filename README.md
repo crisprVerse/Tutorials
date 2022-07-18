@@ -5,7 +5,7 @@
 
 ### Getting started 
 
-0. Overview
+0. [Overview]()
 1. Installation
 2. Building genome indexes 
 3. Building a custom nuclease object
@@ -34,5 +34,5 @@
 
 ### Building a genome-wide database for a given nuclease
 
-17. Building a database for the human genome using Cas9
+17. [Building a database for the human genome using Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
 
