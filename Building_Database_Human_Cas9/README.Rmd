@@ -16,20 +16,25 @@ Date: July 16, 2022
 
 # Introduction
 
+In this tutorial, we provide reproducible code to design and annotates all gRNAs in a transcriptome, for a given organism, and for a specific nuclease. As an example, we design CRISPRko gRNAs for the human transcriptome, in GRCh38 coordinates, for the commonly-used wildtype nuclease SpCas9. 
 
 # Loading necessary packages
 
+We first load the necessary packages:
+
+
 ```{r, warning=FALSE, message=FALSE}
+library(crisprBase)
+library(crisprScore)
 library(crisprDesign)
 library(crisprDesignData)
-library(crisprBase)
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
 
-
 ### Specifying the genome
 
+We specify a `BSGenome` object that contains the reference genome of the target organism:
 
 ```{r}
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
@@ -37,17 +42,30 @@ bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 
 ### Specifying the genome index
 
+We specify the file path of the genome index needed for Bowtie alignment:
+
 ```{r}
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
+See the `crisprBowtie` vignette for instructions about how to create a Bowtie index from a given reference genome.
+
+
 ### Specifying a SNP VCF file
+
+To add a SNP annotation, we specify a path to a VCF file obtained from the dbSNP website representing common SNPs for a given dbSNP release:
 
 ```{r}
 vcf <- "/Users/fortinj2/crisprIndices/snps/dbsnp151.grch38/00-common_all.vcf.gz"
 ```
 
+The VCF file can be obtained from [this website](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf).
+
 ### Specifying the nuclease
+
+The `crisprBase` provides functionalities for creating custom `crisprNuclease` objects, and also provides already-available `crisprNuclease` objects such as the commonly-used `SpCas9`, `enAsCas12a`, `CasRx` nucleases. 
+
+Here, we will use the popular wildtype Cas9 nuclease `SpCas9`:
 
 ```{r}
 data(SpCas9, package="crisprBase")
@@ -56,28 +74,51 @@ crisprNuclease=SpCas9
 
 ### Specifying on-target scoring methods
 
+We specify which on-target scoring methods we want to use:
+
 ```{r}
 scoring_methods=c("crisprscan", "ruleset1")
+```
+
+More information about which scoring methods are available for a given nuclease can be obtained using the following:
+
+
+```{r}
+crisprScore::scoringMethodsInfo
 ```
 
 
 ### Specifying gene models and TSS annotations
 
-The package `crisprDesignData` contains already-processed Ensembl objects for gene annotation of human and mouse gRNAs that are needed:
+To annotate gRNAs with gene context, we need to specify a gene model formatted as a `TxDbObject`. To annotate gRNAs with TSS information, we also need to specify a `GRanges` object containg TSS coordinates. The `crisprDesignData` contains such objects for both the human and mouse genomes, in GRCh38 (hg38) and GRCm38 (mm10) coordinates, respectively. Ensembl gene models were used to generate such objects.
+
 
 ```{r, warning=FALSE, message=FALSE}
 data(txdb_human, package="crisprDesignData")
 data(tss_human, package="crisprDesignData")
-data(gr.repeats.hg38, package="crisprDesignData")
 txObject <- txdb_human
 tssObject <- tss_human
+```
+
+The `crisprDesignData` vignette shows how to create such objects from other transcriptomes. 
+
+
+### Specifying repeat elements
+
+To avoid designing gRNAs in repeat elements, we can specify a `GRanges` object containing repeats coordinates for a given annotation. Here, we use the object `gr.repeats.hg38` in `crisprDesignData` that contains genomic coordinates of the RepeatMasker UCSC track, for the hg38 reference genome:
+
+```{r, warning=FALSE, message=FALSE}
+data(gr.repeats.hg38, package="crisprDesignData")
 grRepeats <- gr.repeats.hg38
 ```
 
 
 # Building a complete annotation for a given gene 
 
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Explicitely calling those packages here instead of
+# printout when calling precomputeGuides. This can be omitted. 
 library(crisprScoreData)
 library(ExperimentHub)
 library(AnnotationHub)
@@ -85,32 +126,100 @@ library(BiocFileCache)
 library(dbplyr)
 ```
 
+The `designCompleteAnnotation` function in `crisprDesign` provides a one-step workflow to design and annotate gRNAs targeting a coding gene for a user-specific combination of parameters.
+
+Here, we design all gRNAs targeting the human KRAS gene (ENSG00000133703) for CRISPRko applications using SpCas9:
+
+
 ```{r, warning=FALSE}
-gs <- precomputeGuides("ENSG00000133703",
-                       modality="CRISPRko",
-                       bsgenome=bsgenome,
-                       bowtie_index=bowtie_index,
-                       crisprNuclease=SpCas9,
-                       txObject=txObject,
-                       tssObject=tssObject,
-                       grRepeats=grRepeats,
-                       vcf=vcf,
-                       n_mismatches=1,
-                       scoring_methods=scoring_methods)
+gs <- designCompleteAnnotation("ENSG00000133703",
+                               modality="CRISPRko",
+                               bsgenome=bsgenome,
+                               bowtie_index=bowtie_index,
+                               crisprNuclease=SpCas9,
+                               txObject=txObject,
+                               tssObject=tssObject,
+                               grRepeats=grRepeats,
+                               vcf=vcf,
+                               n_mismatches=1,
+                               scoring_methods=scoring_methods)
 ```
 
+
+The resulting object is a `GuideSet` object containing the fully annotated gRNAs, as described in the `crisprDesign` vignette. See the Tutorial `CRISPRko` to learn more about `GuideSet` objects and how to access their rich annotations.
 
 
 ```{r}
 gs
 ```
 
-### Flattening
+
+### Converting the `GuideSet` object to a list of data.frames
+
+The `flattenGuideSet` function in `crisprDesign` is a convenience function to convert the complex `GuideSet` object into a set of 5 data.frames that can be saved as plain text files:
 
 ```{r}
-tables <- flattenGuideSet(gs)
-head(tables)
+dfs <- flattenGuideSet(gs)
 ```
+
+We can look at the names of the data.frames:
+
+```{r}
+names(dfs)
+```
+
+As an example, let's look at the first rows of the primary data.frame:
+
+```{r}
+head(dfs$primary)
+```
+
+# Building a complete annotation for all genes
+
+We first get all possibles genes from our gene model:
+
+```{r}
+gene_ids <- unique(txObject$cds$gene_id)
+head(gene_ids)
+```
+
+and build an index to loop over for generating the GuideSet objects:
+
+```{r}
+gene_index <- seq_along(gene_ids)
+head(gene_index)
+```
+
+We specify where to save the GuideSets:
+
+
+```{r, eval=FALSE}
+dir <- "./crisprko_cas9_hg38"
+if (!dir.exists(dir)){
+  dir.create(dir, recursive=TRUE)
+}
+```
+
+We are now ready to generate and save all data:
+
+```{r, eval=FALSE}
+lapply(gene_index, function(gene){
+    gs <- designCompleteAnnotation(gene,
+                             modality="CRISPRko",
+                             bsgenome=bsgenome,
+                             bowtie_index=bowtie_index,
+                             crisprNuclease=SpCas9,
+                             txObject=txObject,
+                             tssObject=tssObject,
+                             grRepeats=grRepeats,
+                             vcf=vcf,
+                             n_mismatches=1,
+                             scoring_methods=scoring_methods)
+    write.rds(gs, file=file.path(dir, paste0(gene, ".rds")))
+})
+```
+
+This part can be modified by the user to use an embarrassingly-parallel approach to save time using the `BiocParallel` package, for instance.
 
                          
 # Reproducibility
