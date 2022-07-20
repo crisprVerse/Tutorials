@@ -18,6 +18,10 @@ Building a gRNA database for the human genome using Cas9
         data.frames](#converting-the-guideset-object-to-a-list-of-dataframes)
 -   [Building a complete annotation for all
     genes](#building-a-complete-annotation-for-all-genes)
+-   [Considerations for
+    CRISPRa/CRISPRi](#considerations-for-crispracrispri)
+-   [Considerations for CRISPRkd
+    (RfxCas13d)](#considerations-for-crisprkd-rfxcas13d)
 -   [Reproducibility](#reproducibility)
 
 Authors: Jean-Philippe Fortin
@@ -164,7 +168,8 @@ Here, we design all gRNAs targeting the human KRAS gene
 (ENSG00000133703) for CRISPRko applications using SpCas9:
 
 ``` r
-gs <- designCompleteAnnotation("ENSG00000133703",
+gs <- designCompleteAnnotation(queryValue="ENSG00000133703",
+                               queryColumn="gene_id",
                                modality="CRISPRko",
                                bsgenome=bsgenome,
                                bowtie_index=bowtie_index,
@@ -177,8 +182,8 @@ gs <- designCompleteAnnotation("ENSG00000133703",
                                scoring_methods=scoring_methods)
 ```
 
-    ## [precomputeGuides] Adding sequence statistics 
-    ## [precomputeGuides] Adding spacer alignments
+    ## [designCompleteAnnotation] Adding sequence statistics 
+    ## [designCompleteAnnotation] Adding spacer alignments
 
     ## Loading required namespace: crisprBwa
 
@@ -186,15 +191,15 @@ gs <- designCompleteAnnotation("ENSG00000133703",
     ## [runCrisprBowtie] Searching for SpCas9 protospacers 
     ## [runCrisprBowtie] Using BSgenome.Hsapiens.UCSC.hg38 
     ## [runCrisprBowtie] Searching for SpCas9 protospacers 
-    ## [precomputeGuides] Adding gene annotation 
-    ## [precomputeGuides] Adding on-target scores
+    ## [designCompleteAnnotation] Adding gene annotation 
+    ## [designCompleteAnnotation] Adding on-target scores
 
     ## [addOnTargetScores] Adding ruleset1 scores.
 
     ## [addOnTargetScores] Adding crisprscan scores.
 
-    ## [precomputeGuides] Adding CFD scores annotation 
-    ## [precomputeGuides] Adding SNP annotation
+    ## [designCompleteAnnotation] Adding CFD scores annotation 
+    ## [designCompleteAnnotation] Adding SNP annotation
 
 The resulting object is a `GuideSet` object containing the fully
 annotated gRNAs, as described in the `crisprDesign` vignette. See the
@@ -352,13 +357,13 @@ As an example, let’s look at the first rows of the primary data.frame:
 head(dfs$primary)
 ```
 
-    ##                  ID   chr    start      end strand          protospacer pam
-    ## 1 ENSG00000133703_1 chr12 25209843 25209843      - AAAGAAAAGATGAGCAAAGA TGG
-    ## 2 ENSG00000133703_2 chr12 25209896 25209896      + TTCTCGAACTAATGTATAGA AGG
-    ## 3 ENSG00000133703_3 chr12 25215438 25215438      - AAATGCATTATAATGTAATC TGG
-    ## 4 ENSG00000133703_4 chr12 25215477 25215477      - AGCAAAGAAGAAAAGACTCC TGG
-    ## 5 ENSG00000133703_5 chr12 25215477 25215477      + TTTTTAATTTTCACACAGCC AGG
-    ## 6 ENSG00000133703_6 chr12 25215520 25215520      + TTTTTTTCAATCTGTATTGT CGG
+    ##                  ID               spacer   chr    start      end strand pam
+    ## 1 ENSG00000133703_1 AAAGAAAAGATGAGCAAAGA chr12 25209844 25209863      - TGG
+    ## 2 ENSG00000133703_2 TTCTCGAACTAATGTATAGA chr12 25209876 25209895      + AGG
+    ## 3 ENSG00000133703_3 AAATGCATTATAATGTAATC chr12 25215439 25215458      - TGG
+    ## 4 ENSG00000133703_4 AGCAAAGAAGAAAAGACTCC chr12 25215478 25215497      - TGG
+    ## 5 ENSG00000133703_5 TTTTTAATTTTCACACAGCC chr12 25215457 25215476      + AGG
+    ## 6 ENSG00000133703_6 TTTTTTTCAATCTGTATTGT chr12 25215500 25215519      + CGG
     ##   pam_site cut_site   region inRepeats percentGC polyA polyC polyG polyT
     ## 1 25209843 25209846 region_8     FALSE        30  TRUE FALSE FALSE FALSE
     ## 2 25209896 25209893 region_8     FALSE        30 FALSE FALSE FALSE FALSE
@@ -411,27 +416,49 @@ if (!dir.exists(dir)){
 }
 ```
 
-We are now ready to generate and save all data:
+We are now ready to generate and save all data with the function
+`designCompleteAnnotation` from `crisprDesign`. The function was
+designed to be as comprehensive as possible to design and annotate gRNAs
+in one step. It does the following:
+
+-   Extract the DNA/RNA sequences with `queryTss`/`queryTxDB`
+-   Design gRNAs with `findSpacers`
+-   Remove gRNAs targeting repeat elements with `removeRepeats`
+-   Characterize spacer sequences with `addSequenceFeatures`
+-   Find on- and off-targets with `addSpacerAlignmentsIterative`
+-   Add gene annotation with `addGeneAnnotation`
+-   Add TSS annotation with `addTssAnnotation`
+-   Add on-target efficiency scores with `addOnTargetScores`
+-   Add off-target specificity scores with `addOffTargetScores`
+-   Add SNP annotation with `addSNPAnnotation`
+-   Add restriction enzymes information with `addRestrictionEnzymes`
+
+We are now looping over all genes to generate the data:
 
 ``` r
 lapply(gene_index, function(gene){
-    gs <- designCompleteAnnotation(gene,
-                             modality="CRISPRko",
-                             bsgenome=bsgenome,
-                             bowtie_index=bowtie_index,
-                             crisprNuclease=SpCas9,
-                             txObject=txObject,
-                             tssObject=tssObject,
-                             grRepeats=grRepeats,
-                             vcf=vcf,
-                             n_mismatches=1,
-                             scoring_methods=scoring_methods)
+    gs <- designCompleteAnnotation(queryValue=gene,
+                                   queryColumn="gene_id",
+                                   modality="CRISPRko",
+                                   bsgenome=bsgenome,
+                                   bowtie_index=bowtie_index,
+                                   crisprNuclease=SpCas9,
+                                   txObject=txObject,
+                                   tssObject=tssObject,
+                                   grRepeats=grRepeats,
+                                   vcf=vcf,
+                                   n_mismatches=3,
+                                   scoring_methods=scoring_methods)
     write.rds(gs, file=file.path(dir, paste0(gene, ".rds")))
 })
 ```
 
-This part can be modified by the user to use an embarrassingly-parallel
+This loop can be modified by the user to use an embarrassingly-parallel
 approach to save time using the `BiocParallel` package, for instance.
+
+# Considerations for CRISPRa/CRISPRi
+
+# Considerations for CRISPRkd (RfxCas13d)
 
 # Reproducibility
 
@@ -459,8 +486,8 @@ sessionInfo()
     ##  [3] rtracklayer_1.55.4                Biostrings_2.63.2                
     ##  [5] XVector_0.35.0                    GenomicRanges_1.47.6             
     ##  [7] GenomeInfoDb_1.31.6               IRanges_2.29.1                   
-    ##  [9] S4Vectors_0.33.11                 crisprDesignData_0.99.7          
-    ## [11] crisprDesign_0.99.98              crisprScore_1.1.9                
+    ##  [9] S4Vectors_0.33.11                 crisprDesignData_0.99.8          
+    ## [11] crisprDesign_0.99.102             crisprScore_1.1.9                
     ## [13] crisprScoreData_1.1.3             ExperimentHub_2.3.5              
     ## [15] AnnotationHub_3.3.9               BiocFileCache_2.3.4              
     ## [17] dbplyr_2.1.1                      BiocGenerics_0.41.2              
