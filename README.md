@@ -13,7 +13,7 @@
 
 ### Common gRNA design workflows
 
-5. CRISPRko design with Cas9
+5. [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
 6. CRISPRko design with Cas12a
 7. CRISPRbe design 
 8. CRISPRa design
