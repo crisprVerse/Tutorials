@@ -2,78 +2,60 @@ Using crisprDesign to design gRNAs for CRISPRko with the SpCas9 nuclease
 ================
 
 -   [Introduction](#introduction)
--   [Installation](#installation)
--   [Terminology](#terminology)
--   [CRISPRko design](#crisprko-design)
+-   [Some terminology before we get
+    started](#some-terminology-before-we-get-started)
+-   [End-to-end gRNA design workflow](#end-to-end-grna-design-workflow)
     -   [Nuclease specification](#nuclease-specification)
-    -   [Target DNA specification](#target-dna-specification)
-    -   [Designing spacer sequences](#designing-spacer-sequences)
-    -   [Sequence features
-        characterization](#sequence-features-characterization)
-    -   [Off-target search](#off-target-search)
-        -   [Iterative spacer alignments](#iterative-spacer-alignments)
-    -   [Off-target scoring](#off-target-scoring)
-    -   [On-target scoring](#on-target-scoring)
+    -   [Specification of the target DNA sequence (KRAS
+        CDS)](#specification-of-the-target-dna-sequence-kras-cds)
+    -   [Finding spacer sequences targeting
+        KRAS](#finding-spacer-sequences-targeting-kras)
+    -   [Characterizing gRNA spacer
+        sequences](#characterizing-grna-spacer-sequences)
+    -   [Off-target search with bowtie](#off-target-search-with-bowtie)
+    -   [Removing repeat elements](#removing-repeat-elements)
+    -   [Off-target scoring (MIT and CFD specificity
+        scores)](#off-target-scoring-mit-and-cfd-specificity-scores)
+    -   [On-target scoring (gRNA
+        efficiency)](#on-target-scoring-grna-efficiency)
     -   [Restriction enzymes](#restriction-enzymes)
     -   [Gene annotation](#gene-annotation)
     -   [TSS annotation](#tss-annotation)
-    -   [SNP information](#snp-information)
+    -   [SNP annotation](#snp-annotation)
     -   [Filtering and ranking gRNAs](#filtering-and-ranking-grnas)
 -   [Session Info](#session-info)
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 26 July, 2022
+Date: 01 August, 2022
 
 # Introduction
 
-`crisprDesign` is a comprehensive software package for designing and
-annotating CRISPR guide RNA (gRNA) sequences, including the
-characterization of on-targets and off-targets, gene context annotation,
-and SNP annotation (human only). The software was developed to be as
-applicable and generalizable as possible.
+In this tutorial, we illustrate the main functionalities of
+`crisprDesign`, the central package of the `crisprVerse` ecosystem, by
+designing CRISPR/Cas9 gRNAs targeting the coding sequence of the human
+gene KRAS. Most steps described in the tutorial are applicable to any
+genomic target.
 
-This tutorial will demonstrate how to use `crisprDesign` to design gRNAs
-for CRISPR knockout (CRISPRko) with the SpCas9 nuclease from the
-`crisprBase` package. Specifically, it will target the human KRAS gene,
-however, much of the same process can be applied to any genomic target.
+# Some terminology before we get started
 
-# Installation
-
-`crisprDesign` can be installed from Bioconductor using the following
-commands in an R session:
-
-``` r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprDesign")
-```
-
-# Terminology
-
-CRISPR nucleases are examples of RNA-guided endonucleases. They require
-two binding components for cleavage. First, the nuclease needs to
-recognize a constant nucleotide motif in the target DNA called the
-protospacer adjacent motif (PAM) sequence. Second, the gRNA, which
-guides the nuclease to the target sequence, needs to bind to a
-complementary sequence adjacent to the PAM sequence, called the
+Before we start designing gRNAs, we first introduce some terminology
+that will be useful throughout this and subsequent tutorials. CRISPR
+nucleases require two binding components for cleavage. First, the
+nuclease needs to recognize a constant nucleotide motif in the target
+DNA called the protospacer adjacent motif (PAM) sequence. Second, the
+gRNA, which guides the nuclease to the target sequence, needs to bind to
+a complementary sequence adjacent to the PAM sequence, called the
 **protospacer** sequence. The latter can be thought of as a variable
 binding motif that can be specified by designing corresponding gRNA
 sequences.
 
 The **spacer** sequence is used in the gRNA construct to guide the
 CRISPR nuclease to the target **protospacer** sequence in the host
-genome.
-
-For DNA-targeting nucleases, the nucleotide sequence of the spacer and
-protospacer are identical. For RNA-targeting nucleases, they are the
-reverse complement of each other.
-
-While a gRNA spacer sequence may not always uniquely target the host
-genome (i.e. it may map to multiple protospacers in the host genome), we
-can, for a given reference genome, uniquely identify a protospacer
-sequence with a combination of 3 attributes:
+genome. While a gRNA spacer sequence may not always uniquely target the
+host genome (i.e. it may map to multiple protospacers in the host
+genome), we can, for a given reference genome, uniquely identify a
+protospacer sequence with a combination of 3 attributes:
 
 -   `chr`: chromosome name
 -   `strand`: forward (+) or reverse (-)
@@ -81,17 +63,14 @@ sequence with a combination of 3 attributes:
     nuclease-specific PAM sequence; for SpCas9 this is the “N” in the
     NGG PAM sequence
 
-For CRISPRko, we use an additional genomic coordinate, called
-`cut_site`, to represent where the double-stranded break (DSB) occurs.
-For SpCas9, the cut site (blunt-ended dsDNA break) is located 4nt
-upstream of the pam_site (PAM-proximal editing).
+For CRISPRko applications, we use an additional genomic coordinate,
+called `cut_site`, to represent where the double-stranded break (DSB)
+occurs. For SpCas9, the cut site (blunt-ended dsDNA break) is located
+4nt upstream of the pam_site (PAM-proximal editing).
 
-# CRISPRko design
+# End-to-end gRNA design workflow
 
-This tutorial will illustrate the main functionalities of `crisprDesign`
-in designing gRNAs to knock out the human, protein-coding KRAS gene. Our
-example will design gRNAs for the wildtype SpCas9 nuclease, with spacers
-having a length of 20nt.
+We first start by loading the package as usual:
 
 ``` r
 library(crisprDesign)
@@ -99,11 +78,9 @@ library(crisprDesign)
 
 ## Nuclease specification
 
-The `crisprBase` package provides functionalities to create objects that
-store information about CRISPR nucleases, and functions to interact with
-those objects (see the `crisprBase` vignette). It also provides
-commonly-used CRISPR nucleases. Let’s look at the `SpCas9` nuclease
-object that we will be using:
+We load the `SpCas9` nuclease object from the `crisprBase` package (see
+the `crisprBase` [vignette](https://github.com/Jfortin1/crisprBase) for
+instructions on how to create or load alternative nucleases):
 
 ``` r
 library(crisprBase)
@@ -129,7 +106,7 @@ two non-canonical PAM sequences NAG and NGA are much less tolerated.
 
 The spacer sequence is located on the 5-prime end with respect to the
 PAM sequence, and the default spacer sequence length is 20 nucleotides.
-If necessary, we can change the spacer length using the function
+If necessary, one can change the spacer length using the function
 `crisprBase::spacerLength`. We can inspect the protospacer construct by
 using `prototypeSequence`:
 
@@ -139,19 +116,16 @@ prototypeSequence(SpCas9)
 
     ## [1] "5'--SSSSSSSSSSSSSSSSSSSS[NGG]--3'"
 
-## Target DNA specification
+## Specification of the target DNA sequence (KRAS CDS)
 
-As an example, we will design gRNAs that knockout the human KRAS gene by
-finding all protospacer sequences located in the coding region (CDS) of
-the gene. We will use the human genome assembly GRCh38 (hg38) for all
-coordinate information.
-
-Our first step is to obtain a `GRangesList` object that defines the
-genomic coordinates (for hg38) of the CDS for KRAS in a reference
-genome. (We could also begin with a `TxDb` object that meets this
-criterium, provided we then convert it into a `GRangesList` object using
-the `TxDb2GRangesList` function in `crisprDesign`.) Conveniently, such
-an object is stored in the `crisprDesignData` package.
+Since we aim to design gRNAs that knock out the human KRAS gene, we
+first need to retrieve the DNA sequence of the coding region (CDS) of
+KRAS. We show in this
+[tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
+how to build convenient gene model objects that allows to quickly access
+gene-specific sequences. Here, we obtain from `crisprDesignData` a
+`GRangesList` object that defines the genomic coordinates (in hg38
+coordinates) of coding genes in the human genome:
 
 ``` r
 data(txdb_human, package="crisprDesignData")
@@ -173,20 +147,25 @@ primary transcript of the gene (transcript ID: ENST00000311936).
 
 ``` r
 gr <- gr[gr$tx_id == "ENST00000311936"]
-## optionally, we could also adjust the arguments in our call to queryTxObject:
-# queryTxObject(txObject=txObject,
-#               featureType="cds",
-#               queryColumn="tx_id",
-#               queryValue="ENST00000311936")
 ```
 
-## Designing spacer sequences
+Optionally, we could also adjust the arguments in our call to
+`queryTxObject` to retrieve those transcript-specific coordinates:
 
-`findSpacers` is the main function for obtaining all possible spacer
-sequences that target protospacers located in our target DNA
-sequence(s). If a `GRanges` object is provided as input, a `BSgenome`
-object (an object that contains sequences of a reference genome) must be
-provided as well:
+``` r
+gr <- queryTxObject(txObject=txObject,
+               featureType="cds",
+               queryColumn="tx_id",
+               queryValue="ENST00000311936")
+```
+
+## Finding spacer sequences targeting KRAS
+
+`findSpacers` is the main function of `crisprDesign` for obtaining all
+possible spacer sequences that target protospacers located in our target
+DNA sequence(s). If a `GRanges` object is provided as input, a
+`BSgenome` object (an object that contains sequences of a reference
+genome) must be provided as well:
 
 ``` r
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -234,7 +213,8 @@ provided by `gr`. The `GuideSet` object is an extension of a
 `GenomicRanges` object that stores additional information about gRNAs.
 
 There are several accessor functions we can use to extract information
-about the spacer sequences in `guideSet`:
+about the spacer sequences in `guideSet`, and here are a few examples
+with their corresponding outputs:
 
 ``` r
 spacers(guideSet)
@@ -304,7 +284,7 @@ head(cutSites(guideSet))
     ## spacer_1 spacer_2 spacer_3 spacer_4 spacer_5 spacer_6 
     ## 25209846 25209893 25225618 25225641 25225656 25225675
 
-## Sequence features characterization
+## Characterizing gRNA spacer sequences
 
 There are specific spacer sequence features, independent of the genomic
 context of the protospacer sequence, that can reduce or even eliminate
@@ -356,7 +336,7 @@ head(guideSet)
     ##   seqinfo: 640 sequences (1 circular) from hg38 genome
     ##   crisprNuclease: SpCas9
 
-## Off-target search
+## Off-target search with bowtie
 
 In order to select gRNAs that are most specific to our target of
 interest, it is important to avoid gRNAs that target additional loci in
@@ -376,13 +356,6 @@ sequences to a specified reference genome. This can be done by
 specifying `aligner="bowtie` and providing a path to a bowtie index file
 to `aligner_index` in `addSpacerAlignments`.
 
-<!-- similar process for bwa... -->
-
-The final method uses the package `Biostrings` to search for similar
-sequences in a set of DNA coordinates sequences, usually provided
-through a `BSGenome` object. This can be done by specifying
-`aligner="biostrings"` in `addSpacerAlignments`.
-
 We can control the alignment parameters and output with several function
 arguments.
 
@@ -390,27 +363,33 @@ arguments.
     mismatches (up to 3 mismatches).
 -   `n_max_alignments` specifies the maximum number of alignments for a
     given gRNA spacer sequence (1000 by default).
--   `all_Possible_alignments`, when set to `TRUE`, overrules the
+-   `all_alignments`, when set to `TRUE`, overrules the
     `n_max_alignments` and returns all possible alignments.
 -   `canonical` filters out protospacer sequences that do not have a
     canonical PAM sequence when `TRUE`.
 
 Let’s search for on- and off-targets having up to 1 mismatch using
-bowtie. We will source a local index file; for instructions on how to
-build a Bowtie index from a given reference genome, see the
-`crisprBowtie` vignette.
-
-We will also pass a gene model (as a `GRangesList`, see the “Target DNA
-specification” section above) to the `txObject` argument, which will
-annotate genomic alignments with genic context. This is useful for
-identifying potentially more problematic off-targets, such as those
-located in the CDS of another gene, for instance.
+bowtie. To use bowtie, we need to specify a bowtie index for the human
+genome:
 
 ``` r
-library(BSgenome.Hsapiens.UCSC.hg38)
-library(crisprDesignData)
-data("txdb_human", package="crisprDesignData")
-bowtie_index <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
+# Path of the hg38 bowtie index on my personal laptop:
+bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
+```
+
+For instructions on how to build a Bowtie index from a given reference
+genome, see the [genome index
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
+or the [crisprBowtie page](https://github.com/Jfortin1/crisprBowtie) .
+
+We will also specify the gene model object `txdb_human` from
+`crisprDesignData` described above for `txObject` argument, which is
+needed for the function to annotate genomic alignments with genic
+context. This is useful for identifying potentially more problematic
+off-targets, such as those located in the CDS of another gene, for
+instance.
+
+``` r
 guideSet <- addSpacerAlignments(guideSet,
                                 aligner="bowtie",
                                 aligner_index=bowtie_index,
@@ -500,9 +479,9 @@ mismatch (the value passed to `n_mismatches`); had we also supplied a
 `GRanges` of TSS coordinates to the `tssObject` argument, our `guideSet`
 would include columns in the last category.
 
-To inspect individual on- and off-targets and their context, use the
-`alignments` function, which returns a table of all genomic alignments
-stored in the `GuideSet` object:
+To inspect individual on- and off-targets and their context, one can use
+the `alignments` function, which returns a table of all genomic
+alignments stored in the `GuideSet` object:
 
 ``` r
 alignments(guideSet)
@@ -569,21 +548,15 @@ alignments (no mismatches) and off-target alignments (having at least
 one mismatch), respectively. See `?addSpacerAlignments` for more details
 about the different options.
 
-### Iterative spacer alignments
-
-gRNAs that align to hundreds of different locations are highly
-unspecific and undesirable. This can also cause `addSpacerAlignments` to
-be slow. The sections below describe a couple methods for mitigating
-this.
-
-#### Iterative spacer alignments
-
-The function `addSpacerAlignmentsIterative` is an iterative version of
+We note that gRNAs that align to hundreds of different locations are
+highly unspecific and undesirable. This can also cause
+`addSpacerAlignments` to be slow. The function
+`addSpacerAlignmentsIterative` is an iterative version of
 `addSpacerAlignments` that curtails alignment searches for gRNAs having
 more hits than the user-defined threshold. See
 `?addSpacerAlignmentsIterative` for more information.
 
-#### Removing repeat elements
+## Removing repeat elements
 
 Many promiscuous protospacer sequences occur in repeats or
 low-complexity DNA sequences (regions identified by RepeatMasker). These
@@ -596,13 +569,12 @@ guideSet <- removeRepeats(guideSet,
                           gr.repeats=gr.repeats.hg38)
 ```
 
-## Off-target scoring
+## Off-target scoring (MIT and CFD specificity scores)
 
 After retrieving a list of putative off-targets and on-targets for a
 given spacer sequence, we can use `addOffTargetScores` to predict the
 likelihood of the nuclease to cut at the off-target locations based on
-mismatch tolerance. Currently, only off-target scoring for the SpCas9
-nuclease are available (MIT and CFD algorithms):
+mismatch tolerance
 
 ``` r
 guideSet <- addOffTargetScores(guideSet)
@@ -610,23 +582,23 @@ guideSet
 ```
 
 Note that this will only work after calling `addSpacerAlignments`, as it
-requires a list of off-targets for each gRNA entry. It also requires the
-package `crisprScore` to be installed.
+requires a list of off-targets for each gRNA entry.
 
-## On-target scoring
+## On-target scoring (gRNA efficiency)
 
 `addOnTargetScores` adds scores from on-target efficiency algorithms
 specified by the `methods` argument (or all available methods if `NULL`)
-available in the R package `crisprScore` and appends them to the
-`GuideSet`:
+available in the R package
+[crisprScore](https://github.com/Jfortin1/crisprScore) and appends them
+to the `GuideSet`:
 
 ``` r
 guideSet <- addOnTargetScores(guideSet,
                               methods=c("deephf"))
 ```
 
-See the `crisprScore` vignette for a full description of the different
-scores.
+See the [crisprScore page](https://github.com/Jfortin1/crisprScore) for
+a full description of the different scores.
 
 ## Restriction enzymes
 
@@ -651,7 +623,8 @@ used for gRNA delivery. The function effectively searches for
 restriction sites in the full sequence:
 `[flanking5][spacer][flanking3]`.
 
-Use the `enzymeAnnotation` function to retrieve the added annotation:
+One can use the `enzymeAnnotation` function to retrieve the added
+annotation:
 
 ``` r
 head(enzymeAnnotation(guideSet))
@@ -802,9 +775,9 @@ tssAnnotation(guideSet)
     ## DataFrame with 0 rows and 11 columns
 
 Not surprisingly, as our `GuideSet` targets the CDS of KRAS, none of our
-guides overlap a promoter region for any gene.
+guides overlap a gene promoter region.
 
-## SNP information
+## SNP annotation
 
 Common single-nucleotide polymorphisms (SNPs) can change the on-target
 and off-target properties of gRNAs by altering the binding. The function
@@ -818,7 +791,7 @@ We will use one of those files, after having downloaded it to our local
 machine.
 
 ``` r
-vcf <- "/Users/hoberecl/crisprIndices/snps/dbsnp151.grch38/00-common_all_snps_only.vcf.gz"
+vcf <- "/Users/fortinj2/crisprIndices/snps/dbsnp151.grch38/00-common_all_snps_only.vcf.gz"
 guideSet <- addSNPAnnotation(guideSet, vcf=vcf)
 snps(guideSet)
 ```
@@ -1090,9 +1063,9 @@ guideSet$rankings
 
 The data frame contains a column for the bin value of each criterium,
 along with an absolute score in the `rank` column, where a rank of `"1"`
-indicates a guide that meets the highest specified level for each of our
-criterium (in this example, that would translate to
-`n1==0 && score_deephf >= 0.8 && isCommonExon==TRUE`).
+indicates a guide that meets the highest specified level (bin value of
+1) for each of our criteria (in this example, that would translate to
+`n1<=0.5 && score_deephf>0.8 && isCommonExon==TRUE`).
 
 # Session Info
 
@@ -1112,67 +1085,67 @@ sessionInfo()
     ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
     ## 
     ## attached base packages:
-    ## [1] stats4   stats    graphics methods  utils    base    
+    ## [1] stats4    stats     graphics  grDevices utils     datasets  methods  
+    ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.4.0              
-    ##  [3] AnnotationHub_3.4.0               BiocFileCache_2.4.0              
-    ##  [5] dbplyr_2.2.1                      crisprDesignData_0.99.10         
-    ##  [7] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.64.0                  
-    ##  [9] rtracklayer_1.56.1                Biostrings_2.64.0                
-    ## [11] XVector_0.36.0                    GenomicRanges_1.48.0             
-    ## [13] GenomeInfoDb_1.32.2               IRanges_2.30.0                   
-    ## [15] S4Vectors_0.34.0                  BiocGenerics_0.42.0              
-    ## [17] crisprDesign_0.99.109             crisprBase_1.1.2                 
+    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.3.5              
+    ##  [3] AnnotationHub_3.3.9               BiocFileCache_2.3.4              
+    ##  [5] dbplyr_2.1.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
+    ##  [7] BSgenome_1.63.5                   rtracklayer_1.55.4               
+    ##  [9] Biostrings_2.63.2                 XVector_0.35.0                   
+    ## [11] GenomicRanges_1.47.6              GenomeInfoDb_1.31.6              
+    ## [13] IRanges_2.29.1                    S4Vectors_0.33.11                
+    ## [15] BiocGenerics_0.41.2               crisprDesign_0.99.109            
+    ## [17] crisprBase_1.1.2                 
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] bitops_1.0-7                  matrixStats_0.62.0           
-    ##   [3] bit64_4.0.5                   filelock_1.0.2               
-    ##   [5] progress_1.2.2                httr_1.4.3                   
-    ##   [7] tools_4.2.0                   utf8_1.2.2                   
-    ##   [9] R6_2.5.1                      DBI_1.1.3                    
-    ##  [11] tidyselect_1.1.2              prettyunits_1.1.1            
-    ##  [13] bit_4.0.4                     curl_4.3.2                   
-    ##  [15] compiler_4.2.0                crisprBowtie_1.0.0           
-    ##  [17] cli_3.3.0                     Biobase_2.56.0               
-    ##  [19] datasets_4.2.0                basilisk.utils_1.8.0         
-    ##  [21] xml2_1.3.3                    DelayedArray_0.22.0          
-    ##  [23] randomForest_4.7-1.1          readr_2.1.2                  
-    ##  [25] rappdirs_0.3.3                stringr_1.4.0                
-    ##  [27] digest_0.6.29                 Rsamtools_2.12.0             
-    ##  [29] rmarkdown_2.14                crisprScore_1.1.6            
-    ##  [31] basilisk_1.8.0                pkgconfig_2.0.3              
-    ##  [33] htmltools_0.5.2               MatrixGenerics_1.8.1         
-    ##  [35] fastmap_1.1.0                 grDevices_4.2.0              
-    ##  [37] rlang_1.0.3                   rstudioapi_0.13              
-    ##  [39] RSQLite_2.2.14                shiny_1.7.1                  
-    ##  [41] BiocIO_1.6.0                  generics_0.1.2               
-    ##  [43] jsonlite_1.8.0                vroom_1.5.7                  
-    ##  [45] BiocParallel_1.30.3           dplyr_1.0.9                  
-    ##  [47] VariantAnnotation_1.42.1      RCurl_1.98-1.7               
-    ##  [49] magrittr_2.0.3                GenomeInfoDbData_1.2.8       
-    ##  [51] Matrix_1.4-1                  Rcpp_1.0.8.3                 
-    ##  [53] fansi_1.0.3                   reticulate_1.25              
-    ##  [55] Rbowtie_1.36.0                lifecycle_1.0.1              
-    ##  [57] stringi_1.7.6                 yaml_2.3.5                   
-    ##  [59] SummarizedExperiment_1.26.1   zlibbioc_1.42.0              
-    ##  [61] grid_4.2.0                    blob_1.2.3                   
-    ##  [63] promises_1.2.0.1              parallel_4.2.0               
-    ##  [65] crayon_1.5.1                  crisprBwa_1.0.0              
-    ##  [67] dir.expiry_1.4.0              lattice_0.20-45              
-    ##  [69] GenomicFeatures_1.48.3        hms_1.1.1                    
-    ##  [71] KEGGREST_1.36.2               knitr_1.39                   
-    ##  [73] pillar_1.7.0                  rjson_0.2.21                 
-    ##  [75] codetools_0.2-18              biomaRt_2.52.0               
-    ##  [77] BiocVersion_3.15.2            XML_3.99-0.10                
-    ##  [79] glue_1.6.2                    evaluate_0.15                
-    ##  [81] BiocManager_1.30.18           httpuv_1.6.5                 
-    ##  [83] png_0.1-7                     vctrs_0.4.1                  
-    ##  [85] tzdb_0.3.0                    purrr_0.3.4                  
-    ##  [87] assertthat_0.2.1              cachem_1.0.6                 
-    ##  [89] xfun_0.31                     mime_0.12                    
-    ##  [91] Rbwa_1.0.0                    xtable_1.8-4                 
-    ##  [93] restfulr_0.0.15               later_1.3.0                  
-    ##  [95] tibble_3.1.7                  GenomicAlignments_1.32.0     
-    ##  [97] AnnotationDbi_1.58.0          memoise_2.0.1                
-    ##  [99] interactiveDisplayBase_1.34.0 ellipsis_0.3.2
+    ##  [1] bitops_1.0-7                  matrixStats_0.61.0           
+    ##  [3] bit64_4.0.5                   filelock_1.0.2               
+    ##  [5] progress_1.2.2                httr_1.4.2                   
+    ##  [7] tools_4.2.0                   utf8_1.2.2                   
+    ##  [9] R6_2.5.1                      DBI_1.1.2                    
+    ## [11] withr_2.5.0                   tidyselect_1.1.2             
+    ## [13] prettyunits_1.1.1             bit_4.0.4                    
+    ## [15] curl_4.3.2                    compiler_4.2.0               
+    ## [17] crisprBowtie_1.1.1            cli_3.3.0                    
+    ## [19] Biobase_2.55.0                basilisk.utils_1.9.1         
+    ## [21] xml2_1.3.3                    DelayedArray_0.21.2          
+    ## [23] randomForest_4.7-1            readr_2.1.2                  
+    ## [25] rappdirs_0.3.3                stringr_1.4.0                
+    ## [27] digest_0.6.29                 Rsamtools_2.11.0             
+    ## [29] rmarkdown_2.13                crisprScore_1.1.13           
+    ## [31] basilisk_1.9.2                pkgconfig_2.0.3              
+    ## [33] htmltools_0.5.2               MatrixGenerics_1.7.0         
+    ## [35] fastmap_1.1.0                 rlang_1.0.2                  
+    ## [37] rstudioapi_0.13               RSQLite_2.2.12               
+    ## [39] shiny_1.7.1                   BiocIO_1.5.0                 
+    ## [41] generics_0.1.2                jsonlite_1.8.0               
+    ## [43] vroom_1.5.7                   BiocParallel_1.29.18         
+    ## [45] dplyr_1.0.8                   VariantAnnotation_1.41.3     
+    ## [47] RCurl_1.98-1.6                magrittr_2.0.2               
+    ## [49] GenomeInfoDbData_1.2.7        Matrix_1.4-0                 
+    ## [51] Rcpp_1.0.8.3                  fansi_1.0.2                  
+    ## [53] reticulate_1.25               Rbowtie_1.35.0               
+    ## [55] lifecycle_1.0.1               stringi_1.7.6                
+    ## [57] yaml_2.3.5                    SummarizedExperiment_1.25.3  
+    ## [59] zlibbioc_1.41.0               grid_4.2.0                   
+    ## [61] blob_1.2.2                    promises_1.2.0.1             
+    ## [63] parallel_4.2.0                crayon_1.5.0                 
+    ## [65] crisprBwa_1.1.2               dir.expiry_1.3.0             
+    ## [67] lattice_0.20-45               GenomicFeatures_1.47.13      
+    ## [69] hms_1.1.1                     KEGGREST_1.35.0              
+    ## [71] knitr_1.37                    pillar_1.7.0                 
+    ## [73] rjson_0.2.21                  biomaRt_2.51.3               
+    ## [75] BiocVersion_3.15.0            XML_3.99-0.9                 
+    ## [77] glue_1.6.2                    evaluate_0.15                
+    ## [79] BiocManager_1.30.16           httpuv_1.6.5                 
+    ## [81] png_0.1-7                     vctrs_0.3.8                  
+    ## [83] tzdb_0.2.0                    purrr_0.3.4                  
+    ## [85] assertthat_0.2.1              cachem_1.0.6                 
+    ## [87] xfun_0.30                     mime_0.12                    
+    ## [89] Rbwa_1.1.0                    xtable_1.8-4                 
+    ## [91] restfulr_0.0.13               later_1.3.0                  
+    ## [93] tibble_3.1.6                  GenomicAlignments_1.31.2     
+    ## [95] AnnotationDbi_1.57.1          memoise_2.0.1                
+    ## [97] interactiveDisplayBase_1.33.0 ellipsis_0.3.2
