@@ -18,7 +18,7 @@
 7. CRISPRbe design 
 8. CRISPRa design
 9. CRISPRi design
-10. CRISPRko design with CasRx (Cas13d)
+10. CRISPRkd design with CasRx (Cas13d)
 
 ### Less common gRNA design workflows
 
