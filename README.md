@@ -31,10 +31,11 @@
 14. Mapping gRNAs across species
 15. Working with minor and major alleles
 16. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
+17. Design for optical pooled screening (OPS)
 
 ### Building a genome-wide database for a given nuclease
 
-17. [Building a database for the human genome using Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
-18. [Building a database for the human transcriptome using CasRx](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_CasRx)
-19. [Building a database for the human promoterome using CRISPRa](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9_CRISPRa)
+18. [Building a database for the human genome using Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
+19. [Building a database for the human transcriptome using CasRx](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_CasRx)
+20. [Building a database for the human promoterome using CRISPRa](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9_CRISPRa)
 
