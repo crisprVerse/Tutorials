@@ -9,7 +9,7 @@
 1. Installation
 2. [Building genome indices](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
 3. [Building a custom nuclease object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease)
-4. Building a gene annotation object
+4. [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
 
 ### Common gRNA design workflows
 
