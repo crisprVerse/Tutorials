@@ -1,0 +1,162 @@
+---
+title: "Using crisprDesign to design gRNAs for CRISPRa"
+output: 
+  github_document:
+    toc: true
+bibliography: references.bib
+---
+
+```{r, echo=FALSE, results="hide"}
+options("knitr.graphics.auto_pdf"=TRUE)
+```
+
+Authors: Jean-Philippe Fortin, Luke Hoberecht
+
+Date: `r format(Sys.time(), '%d %B, %Y')`
+
+
+# Introduction
+
+`crisprDesign` is a comprehensive software package for designing and annotating CRISPR guide RNA (gRNA) sequences, including the characterization of on-targets and off-targets, gene context annotation, and SNP annotation (human only). The software was developed to be as applicable and generalizable as possible.
+
+This tutorial will demonstrate how to use `crisprDesign` to design gRNAs for CRISPR activation (CRISPRa). Specifically, it will target the human KRAS gene and use the SpCas9 nuclease, however, much of the same process can be applied to any genomic target and with any CRISPR nuclease.
+
+
+# Installation
+
+`crisprDesign` can be installed from Bioconductor using the following commands in an R session:
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("crisprDesign")
+```
+
+
+# Terminology
+
+CRISPR nucleases are examples of RNA-guided endonucleases. They require two binding components for cleavage. First, the nuclease needs to recognize a constant nucleotide motif in the target DNA called the protospacer adjacent motif (PAM) sequence. Second, the gRNA, which guides the nuclease to the target sequence, needs to bind to a complementary sequence adjacent to the PAM sequence, called the **protospacer** sequence. The latter can be thought of as a variable binding motif that can be specified by designing corresponding gRNA sequences.
+
+The **spacer** sequence is used in the gRNA construct to guide the CRISPR nuclease to the target **protospacer** sequence in the host genome.
+
+For DNA-targeting nucleases, the nucleotide sequence of the spacer and protospacer are identical. For RNA-targeting nucleases, they are the reverse complement of each other. 
+
+While a gRNA spacer sequence may not always uniquely target the host genome (i.e. it may map to multiple protospacers in the host genome), we can, for a given reference genome, uniquely identify a protospacer  sequence with a combination of 3 attributes: 
+
+- `chr`: chromosome name 
+- `strand`: forward (+) or reverse (-)
+- `pam_site`: genomic coordinate of the first nucleotide of the nuclease-specific PAM sequence; for SpCas9 this is the "N" in the NGG PAM sequence
+
+
+# CRISPRa design
+
+For CRISPR activation (CRISPRa) and interference (CRISPRi) applications the CRISPR nuclease is engineered to lose its endonuclease activity, and should therefore not introduce double-stranded breaks (DSBs). We will use the dead SpCas9 (dSpCas9) nuclease as an example here. Note that users don't have to distinguish between dSpCas9 and SpCas9 when specifying the nuclease in `crisprDesign` and `crisprBase` as they do not differ in terms of the characteristics stored in the `CrisprNuclease` object.
+
+In CRISPRa, dSpCas9 is used to activate gene expression by coupling the dead nuclease with activation factors. Several CRISPRa systems have been developed (see @crispracrisprireview for a review). For optimal activation, gRNAs are usually designed to target the region directly upstream of the gene transcription start site (TSS).
+
+`crisprDesign` provides functionalities to be able to take into account design rules that are specific to CRISPRa applications. The `queryTss` function allows for specifying genomic coordinates of promoter regions. The `addTssAnnotation` function annotates gRNAs for known TSSs, and includes a column `dist_to_tss` that gives the distance in nucleotides between the TSS position and the PAM site of the gRNA. For CRISPRa, we recommend targeting the region 75-150bp upstream of the TSS for optimal activation; see @sanson2018optimized for more information.
+
+
+## Creating the GuideSet
+
+As an example to demonstrate selecting gRNAs for CRISPRa, suppose we want to activate the human KRAS gene using the SpCas9 nuclease. To accomplish this we will want our gRNAs to target the region upstream of the KRAS TSS; let's consider the window 0-500bp immediately upstream of the TSS. We first need to retrieve the TSS coordinates for KRAS. These data are conveniently stored in the `crisprDesignData` package as `tss_human` (for more information on `tss_human` and how to create similar TSS annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial).
+
+Install `crisprDesignData` with
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
+```
+
+Then load the TSS coordinates stored in `tss_human` and query for KRAS using the `queryTss` function from `crisprDesign`:
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+library(crisprDesignData)
+data("tss_human", package="crisprDesignData")
+library(crisprDesign)
+target_window <- c(-500, 0)
+target_region <- queryTss(tss_human,
+                          queryColumn="gene_symbol",
+                          queryValue="KRAS",
+                          tss_window=target_window)
+```
+```{r, collapse=TRUE}
+target_region
+```
+
+We can find all protospacers in our target region with `findSpacers`:
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+library(BSgenome.Hsapiens.UCSC.hg38)
+gs <- findSpacers(target_region,
+                  crisprNuclease=SpCas9,
+                  bsgenome=BSgenome.Hsapiens.UCSC.hg38)
+```
+
+```{r, collapse=TRUE}
+gs
+```
+
+
+## Annotating the GuideSet
+
+The next step is to annotate our candidate gRNAs to assess their quality. There are several functions in `crisprDesign` that provide annotation for features that are nonspecific to CRISPRa, for which we refer the reader to the [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) tutorial for more information. The sections below will cover annotation functions that are of particular interest to CRISPRa applications.
+
+
+## Adding TSS annotation
+
+While KRAS has a single TSS, for gene target(s) having multiple TSSs it is valuable knowing which of the promoter regions each gRNA targets, and consequently which isoforms will be affected. It is also helpful to know the exact location our gRNAs target with respect to each TSS. All this information is appended to the `GuideSet` object with the `addTssAnnotation` function. In addition to the `GuideSet`, we simply need to pass the `tssObject` object and `tss_window` values we used earlier to define the target region. We can then retrieve the appended annotation with the accessor function `tssAnnotation`:
+
+```{r, collapse=TRUE}
+gs <- addTssAnnotation(gs,
+                       tssObject=tss_human,
+                       tss_window=target_window)
+tssAnnotation(gs)
+```
+
+
+## Adding spacer alignments with TSS annotation
+
+As with all CRISPR applications, off-targets is an important concern in assessing gRNA quality. While this concern is somewhat moderated for CRISPRa, since the dead CRISPR nuclease does not make DSBs, we should be aware of off-targets occuring in the promoter regions of other genes. This can be handled by passing our `tssObject` to the `addSpacerAlignments`; we will search for up to 2 mismatches and increase our `tss_window` to err on the safe side.
+(Note: this alignment example uses a local bowtie index file; for information on how to create index files for available aligners, see the [Building genome indices for short read aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) tutorial.)
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+index_path <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
+gs <- addSpacerAlignments(gs,
+                          aligner="bowtie",
+                          aligner_index=index_path,
+                          bsgenome=BSgenome.Hsapiens.UCSC.hg38,
+                          n_mismatches=2,
+                          tssObject=tss_human,
+                          tss_window=c(-2000, 500))
+```
+```{r, collapse=TRUE}
+gs
+```
+
+Including a `tssObject` parameter in the `addSpacerAlignments` function appends columns to the `GuideSet` that tallies the alignments restricted to the defined (via `tss_window`) promoter regions: `n0_p`, `n1_p`, and `n2_p` (the `_p` suffix denotes "promoter").
+
+
+## Adding scores
+
+tbd
+
+```{r}
+# gs <- addCrispraiScores(gs,
+#                         gr=target_region,
+#                         tssObject=tss_human,
+#                         geneCol="gene_id",
+#                         modality="CRISPRa",
+#                         chromatinFiles=NULL,
+#                         fastaFile=NULL)
+# gs
+```
+
+
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
