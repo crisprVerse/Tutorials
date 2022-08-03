@@ -1,21 +1,26 @@
 Using crisprDesign to design gRNAs for CRISPRa
 ================
 
--   [Introduction](#introduction)
--   [Installation](#installation)
--   [Terminology](#terminology)
--   [CRISPRa design](#crispra-design)
-    -   [Creating the GuideSet](#creating-the-guideset)
-    -   [Annotating the GuideSet](#annotating-the-guideset)
-    -   [Adding TSS annotation](#adding-tss-annotation)
-    -   [Adding spacer alignments with TSS
-        annotation](#adding-spacer-alignments-with-tss-annotation)
-    -   [Adding scores](#adding-scores)
--   [Session Info](#session-info)
+-   <a href="#introduction" id="toc-introduction">Introduction</a>
+-   <a href="#installation" id="toc-installation">Installation</a>
+-   <a href="#terminology" id="toc-terminology">Terminology</a>
+-   <a href="#crispra-design" id="toc-crispra-design">CRISPRa design</a>
+    -   <a href="#creating-the-guideset" id="toc-creating-the-guideset">Creating
+        the GuideSet</a>
+    -   <a href="#annotating-the-guideset"
+        id="toc-annotating-the-guideset">Annotating the GuideSet</a>
+    -   <a href="#adding-tss-annotation" id="toc-adding-tss-annotation">Adding
+        TSS annotation</a>
+    -   <a href="#adding-spacer-alignments-with-tss-annotation"
+        id="toc-adding-spacer-alignments-with-tss-annotation">Adding spacer
+        alignments with TSS annotation</a>
+    -   <a href="#adding-crisprai-scores" id="toc-adding-crisprai-scores">Adding
+        CRISPRai scores</a>
+-   <a href="#session-info" id="toc-session-info">Session Info</a>
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 02 August, 2022
+Date: 03 August, 2022
 
 # Introduction
 
@@ -28,7 +33,7 @@ applicable and generalizable as possible.
 This tutorial will demonstrate how to use `crisprDesign` to design gRNAs
 for CRISPR activation (CRISPRa). Specifically, it will target the human
 KRAS gene and use the SpCas9 nuclease, however, much of the same process
-can be applied to any genomic target and with any CRISPR nuclease.
+can be applied to any genomic target(s) and with any CRISPR nuclease.
 
 # Installation
 
@@ -104,11 +109,12 @@ activation; see Sanson et al. (2018) for more information.
 As an example to demonstrate selecting gRNAs for CRISPRa, suppose we
 want to activate the human KRAS gene using the SpCas9 nuclease. To
 accomplish this we will want our gRNAs to target the region upstream of
-the KRAS TSS; let’s consider the window 0-500bp immediately upstream of
-the TSS. We first need to retrieve the TSS coordinates for KRAS. These
-data are conveniently stored in the `crisprDesignData` package as
-`tss_human` (for more information on `tss_human` and how to create
-similar TSS annotation objects, see the [Building a gene annotation
+the KRAS TSS; let’s consider the window containing 500bp immediately
+upstream of the TSS. We first need to retrieve the TSS coordinates for
+KRAS. These data are conveniently stored in the `crisprDesignData`
+package as `tss_human` (for more information on `tss_human` and how to
+create similar TSS annotation objects, see the [Building a gene
+annotation
 object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
 tutorial).
 
@@ -205,7 +211,7 @@ functions that are of particular interest to CRISPRa applications.
 ## Adding TSS annotation
 
 While KRAS has a single TSS, for gene target(s) having multiple TSSs it
-is valuable knowing which of the promoter regions each gRNA targets, and
+is valuable knowing which promoter region each gRNA targets, and
 consequently which isoforms will be affected. It is also helpful to know
 the exact location our gRNAs target with respect to each TSS. All this
 information is appended to the `GuideSet` object with the
@@ -219,48 +225,47 @@ gs <- addTssAnnotation(gs,
                        tssObject=tss_human,
                        tss_window=target_window)
 tssAnnotation(gs)
+## DataFrame with 146 rows and 15 columns
+##                 chr anchor_site   strand     score peak_start  peak_end
+##            <factor>   <integer> <factor> <numeric>  <integer> <integer>
+## spacer_1      chr12    25250930        -   5.20187   25250928  25250928
+## spacer_2      chr12    25250947        -   5.20187   25250928  25250928
+## spacer_3      chr12    25250956        -   5.20187   25250928  25250928
+## spacer_4      chr12    25250958        +   5.20187   25250928  25250928
+## spacer_5      chr12    25250959        +   5.20187   25250928  25250928
+## ...             ...         ...      ...       ...        ...       ...
+## spacer_142    chr12    25251422        -   5.20187   25250928  25250928
+## spacer_143    chr12    25251423        -   5.20187   25250928  25250928
+## spacer_144    chr12    25251426        -   5.20187   25250928  25250928
+## spacer_145    chr12    25251426        +   5.20187   25250928  25250928
+## spacer_146    chr12    25251427        +   5.20187   25250928  25250928
+##                      tx_id         gene_id      source    promoter
+##                <character>     <character> <character> <character>
+## spacer_1   ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_2   ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_3   ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_4   ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_5   ENST00000256078 ENSG00000133703     fantom5          P1
+## ...                    ...             ...         ...         ...
+## spacer_142 ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_143 ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_144 ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_145 ENST00000256078 ENSG00000133703     fantom5          P1
+## spacer_146 ENST00000256078 ENSG00000133703     fantom5          P1
+##                        tss_id gene_symbol  tss_strand   tss_pos dist_to_tss
+##                   <character> <character> <character> <integer>   <numeric>
+## spacer_1   ENSG00000133703_P1        KRAS           -  25250928          -2
+## spacer_2   ENSG00000133703_P1        KRAS           -  25250928         -19
+## spacer_3   ENSG00000133703_P1        KRAS           -  25250928         -28
+## spacer_4   ENSG00000133703_P1        KRAS           -  25250928         -30
+## spacer_5   ENSG00000133703_P1        KRAS           -  25250928         -31
+## ...                       ...         ...         ...       ...         ...
+## spacer_142 ENSG00000133703_P1        KRAS           -  25250928        -494
+## spacer_143 ENSG00000133703_P1        KRAS           -  25250928        -495
+## spacer_144 ENSG00000133703_P1        KRAS           -  25250928        -498
+## spacer_145 ENSG00000133703_P1        KRAS           -  25250928        -498
+## spacer_146 ENSG00000133703_P1        KRAS           -  25250928        -499
 ```
-
-    ## DataFrame with 146 rows and 15 columns
-    ##                 chr anchor_site   strand     score peak_start  peak_end
-    ##            <factor>   <integer> <factor> <numeric>  <integer> <integer>
-    ## spacer_1      chr12    25250930        -   5.20187   25250928  25250928
-    ## spacer_2      chr12    25250947        -   5.20187   25250928  25250928
-    ## spacer_3      chr12    25250956        -   5.20187   25250928  25250928
-    ## spacer_4      chr12    25250958        +   5.20187   25250928  25250928
-    ## spacer_5      chr12    25250959        +   5.20187   25250928  25250928
-    ## ...             ...         ...      ...       ...        ...       ...
-    ## spacer_142    chr12    25251422        -   5.20187   25250928  25250928
-    ## spacer_143    chr12    25251423        -   5.20187   25250928  25250928
-    ## spacer_144    chr12    25251426        -   5.20187   25250928  25250928
-    ## spacer_145    chr12    25251426        +   5.20187   25250928  25250928
-    ## spacer_146    chr12    25251427        +   5.20187   25250928  25250928
-    ##                      tx_id         gene_id      source    promoter
-    ##                <character>     <character> <character> <character>
-    ## spacer_1   ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_2   ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_3   ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_4   ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_5   ENST00000256078 ENSG00000133703     fantom5          P1
-    ## ...                    ...             ...         ...         ...
-    ## spacer_142 ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_143 ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_144 ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_145 ENST00000256078 ENSG00000133703     fantom5          P1
-    ## spacer_146 ENST00000256078 ENSG00000133703     fantom5          P1
-    ##                        tss_id gene_symbol  tss_strand   tss_pos dist_to_tss
-    ##                   <character> <character> <character> <integer>   <numeric>
-    ## spacer_1   ENSG00000133703_P1        KRAS           -  25250928          -2
-    ## spacer_2   ENSG00000133703_P1        KRAS           -  25250928         -19
-    ## spacer_3   ENSG00000133703_P1        KRAS           -  25250928         -28
-    ## spacer_4   ENSG00000133703_P1        KRAS           -  25250928         -30
-    ## spacer_5   ENSG00000133703_P1        KRAS           -  25250928         -31
-    ## ...                       ...         ...         ...       ...         ...
-    ## spacer_142 ENSG00000133703_P1        KRAS           -  25250928        -494
-    ## spacer_143 ENSG00000133703_P1        KRAS           -  25250928        -495
-    ## spacer_144 ENSG00000133703_P1        KRAS           -  25250928        -498
-    ## spacer_145 ENSG00000133703_P1        KRAS           -  25250928        -498
-    ## spacer_146 ENSG00000133703_P1        KRAS           -  25250928        -499
 
 ## Adding spacer alignments with TSS annotation
 
@@ -270,10 +275,10 @@ CRISPRa, since the dead CRISPR nuclease does not make DSBs, we should be
 aware of off-targets occuring in the promoter regions of other genes.
 This can be handled by passing our `tssObject` to the
 `addSpacerAlignments`; we will search for up to 2 mismatches and
-increase our `tss_window` to err on the safe side. (Note: this alignment
-example uses a local bowtie index file; for information on how to create
-index files for available aligners, see the [Building genome indices for
-short read
+increase the size of our `tss_window` to err on the safe side. (Note:
+this alignment example uses a local bowtie index file; for information
+on how to create index files for available aligners, see the [Building
+genome indices for short read
 aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
 tutorial.)
 
@@ -353,20 +358,61 @@ appends columns to the `GuideSet` that tallies the alignments restricted
 to the defined (via `tss_window`) promoter regions: `n0_p`, `n1_p`, and
 `n2_p` (the `_p` suffix denotes “promoter”).
 
-## Adding scores
+## Adding CRISPRai scores
 
-tbd
+The CRISPRai algorithm was developed by the Weissman lab to score SpCas9
+gRNAs for CRISPRa and CRISPRi applications for the human genome
+(Horlbeck et al. 2016). The function `addCrispraiScores` implements this
+algorithm to add scores to the `GuideSet`; it requires several inputs in
+addition to the `GuideSet` object:
+
+-   `gr` is the `GRanges` object derived from the `queryTss` function
+    and used to create the `GuideSet` object. In our example, this is
+    `target_region`.
+-   `tssObject` is a `GRanges` object that contains TSS coordinates and
+    annotation. It must also contain the following columns: `ID`,
+    `promoter`, `tx_id`, and `gene_symbol`. Our `tssObject` in this
+    instance is `tss_human`.
+-   `geneCol` indicates which column of `tssObject` should be used as
+    the unique gene identifier
+-   `modality` is the modality of the CRISPR application; in this
+    example it will be `"CRISPRa"`
+-   `fastaFile` is the path of the FASTA file of the human reference
+    genome; the file for the human genome (hg38) can be downloaded
+    directly from here:
+    <https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz>
+-   `chromatinFiles` is a vector of length 3 specifying the path of
+    files containing the chromatin accessibility data needed for the
+    algorithm in hg38 coordinates. The chromatin files can be downloaded
+    from Zenodo [here](https://zenodo.org/record/6716721#.YrzCfS-cY4d).
+
+Let’s prepare the inputs for `addCrispraiScores` then annotated our
+gRNAs with those scores (the required files have been downloaded locally
+in advance):
 
 ``` r
-# gs <- addCrispraiScores(gs,
-#                         gr=target_region,
-#                         tssObject=tss_human,
-#                         geneCol="gene_id",
-#                         modality="CRISPRa",
-#                         chromatinFiles=NULL,
-#                         fastaFile=NULL)
-# gs
+fastaPath <- "/Users/hoberecl/crispraiScores/hg38.fa.gz"
+mnasePath <- "/Users/hoberecl/crispraiScores/crispria_mnase_human_K562_hg38.bigWig"
+dnasePath <- "/Users/hoberecl/crispraiScores/crispria_dnase_human_K562_hg38.bigWig"
+fairePath <- "/Users/hoberecl/crispraiScores/crispria_faire_human_K562_hg38.bigWig"
+results <- addCrispraiScores(gs,
+                             gr=target_region,
+                             tssObject=tss_human,
+                             geneCol="gene_id",
+                             modality="CRISPRa",
+                             fastaFile=fastaPath,
+                             chromatinFiles=c(mnase=mnasePath,
+                                              dnase=dnasePath,
+                                              faire=fairePath)
+                             )
 ```
+
+``` r
+results
+```
+
+This function works identically for CRISPRi applications, with modality
+replaced by `CRISPRi`.
 
 # Session Info
 
@@ -411,7 +457,7 @@ sessionInfo()
     ##  [19] png_0.1-7                     shiny_1.7.2                  
     ##  [21] BiocManager_1.30.18           readr_2.1.2                  
     ##  [23] compiler_4.2.0                httr_1.4.3                   
-    ##  [25] basilisk_1.8.0                assertthat_0.2.1             
+    ##  [25] basilisk_1.9.2                assertthat_0.2.1             
     ##  [27] Matrix_1.4-1                  fastmap_1.1.0                
     ##  [29] cli_3.3.0                     later_1.3.0                  
     ##  [31] htmltools_0.5.3               prettyunits_1.1.1            
@@ -420,13 +466,13 @@ sessionInfo()
     ##  [37] dplyr_1.0.9                   rappdirs_0.3.3               
     ##  [39] Rcpp_1.0.9                    Biobase_2.56.0               
     ##  [41] vctrs_0.4.1                   ExperimentHub_2.4.0          
-    ##  [43] crisprBwa_1.0.0               crisprScore_1.1.6            
+    ##  [43] crisprBwa_1.0.0               crisprScore_1.1.14           
     ##  [45] xfun_0.31                     stringr_1.4.0                
     ##  [47] ps_1.7.1                      mime_0.12                    
     ##  [49] miniUI_0.1.1.1                lifecycle_1.0.1              
     ##  [51] restfulr_0.0.15               devtools_2.4.4               
     ##  [53] XML_3.99-0.10                 AnnotationHub_3.4.0          
-    ##  [55] basilisk.utils_1.8.0          zlibbioc_1.42.0              
+    ##  [55] basilisk.utils_1.9.1          zlibbioc_1.42.0              
     ##  [57] vroom_1.5.7                   VariantAnnotation_1.42.1     
     ##  [59] hms_1.1.1                     promises_1.2.0.1             
     ##  [61] MatrixGenerics_1.8.1          parallel_4.2.0               
@@ -460,6 +506,15 @@ sessionInfo()
     ## [117] sessioninfo_1.2.2
 
 <div id="refs" class="references csl-bib-body hanging-indent">
+
+<div id="ref-crisprai" class="csl-entry">
+
+Horlbeck, Max A, Luke A Gilbert, Jacqueline E Villalta, Britt Adamson,
+Ryan A Pak, Yuwen Chen, Alexander P Fields, et al. 2016. “Compact and
+Highly Active Next-Generation Libraries for CRISPR-Mediated Gene
+Repression and Activation.” *Elife* 5.
+
+</div>
 
 <div id="ref-crispracrisprireview" class="csl-entry">
 

@@ -19,7 +19,7 @@ Date: `r format(Sys.time(), '%d %B, %Y')`
 
 `crisprDesign` is a comprehensive software package for designing and annotating CRISPR guide RNA (gRNA) sequences, including the characterization of on-targets and off-targets, gene context annotation, and SNP annotation (human only). The software was developed to be as applicable and generalizable as possible.
 
-This tutorial will demonstrate how to use `crisprDesign` to design gRNAs for CRISPR activation (CRISPRa). Specifically, it will target the human KRAS gene and use the SpCas9 nuclease, however, much of the same process can be applied to any genomic target and with any CRISPR nuclease.
+This tutorial will demonstrate how to use `crisprDesign` to design gRNAs for CRISPR activation (CRISPRa). Specifically, it will target the human KRAS gene and use the SpCas9 nuclease, however, much of the same process can be applied to any genomic target(s) and with any CRISPR nuclease.
 
 
 # Installation
@@ -60,7 +60,7 @@ In CRISPRa, dSpCas9 is used to activate gene expression by coupling the dead nuc
 
 ## Creating the GuideSet
 
-As an example to demonstrate selecting gRNAs for CRISPRa, suppose we want to activate the human KRAS gene using the SpCas9 nuclease. To accomplish this we will want our gRNAs to target the region upstream of the KRAS TSS; let's consider the window 0-500bp immediately upstream of the TSS. We first need to retrieve the TSS coordinates for KRAS. These data are conveniently stored in the `crisprDesignData` package as `tss_human` (for more information on `tss_human` and how to create similar TSS annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial).
+As an example to demonstrate selecting gRNAs for CRISPRa, suppose we want to activate the human KRAS gene using the SpCas9 nuclease. To accomplish this we will want our gRNAs to target the region upstream of the KRAS TSS; let's consider the window containing 500bp immediately upstream of the TSS. We first need to retrieve the TSS coordinates for KRAS. These data are conveniently stored in the `crisprDesignData` package as `tss_human` (for more information on `tss_human` and how to create similar TSS annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial).
 
 Install `crisprDesignData` with
 
@@ -106,7 +106,7 @@ The next step is to annotate our candidate gRNAs to assess their quality. There 
 
 ## Adding TSS annotation
 
-While KRAS has a single TSS, for gene target(s) having multiple TSSs it is valuable knowing which of the promoter regions each gRNA targets, and consequently which isoforms will be affected. It is also helpful to know the exact location our gRNAs target with respect to each TSS. All this information is appended to the `GuideSet` object with the `addTssAnnotation` function. In addition to the `GuideSet`, we simply need to pass the `tssObject` object and `tss_window` values we used earlier to define the target region. We can then retrieve the appended annotation with the accessor function `tssAnnotation`:
+While KRAS has a single TSS, for gene target(s) having multiple TSSs it is valuable knowing which promoter region each gRNA targets, and consequently which isoforms will be affected. It is also helpful to know the exact location our gRNAs target with respect to each TSS. All this information is appended to the `GuideSet` object with the `addTssAnnotation` function. In addition to the `GuideSet`, we simply need to pass the `tssObject` object and `tss_window` values we used earlier to define the target region. We can then retrieve the appended annotation with the accessor function `tssAnnotation`:
 
 ```{r, collapse=TRUE}
 gs <- addTssAnnotation(gs,
@@ -118,7 +118,7 @@ tssAnnotation(gs)
 
 ## Adding spacer alignments with TSS annotation
 
-As with all CRISPR applications, off-targets is an important concern in assessing gRNA quality. While this concern is somewhat moderated for CRISPRa, since the dead CRISPR nuclease does not make DSBs, we should be aware of off-targets occuring in the promoter regions of other genes. This can be handled by passing our `tssObject` to the `addSpacerAlignments`; we will search for up to 2 mismatches and increase our `tss_window` to err on the safe side.
+As with all CRISPR applications, off-targets is an important concern in assessing gRNA quality. While this concern is somewhat moderated for CRISPRa, since the dead CRISPR nuclease does not make DSBs, we should be aware of off-targets occuring in the promoter regions of other genes. This can be handled by passing our `tssObject` to the `addSpacerAlignments`; we will search for up to 2 mismatches and increase the size of our `tss_window` to err on the safe side.
 (Note: this alignment example uses a local bowtie index file; for information on how to create index files for available aligners, see the [Building genome indices for short read aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) tutorial.)
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
@@ -138,20 +138,40 @@ gs
 Including a `tssObject` parameter in the `addSpacerAlignments` function appends columns to the `GuideSet` that tallies the alignments restricted to the defined (via `tss_window`) promoter regions: `n0_p`, `n1_p`, and `n2_p` (the `_p` suffix denotes "promoter").
 
 
-## Adding scores
+## Adding CRISPRai scores
 
-tbd
+The CRISPRai algorithm was developed by the Weissman lab to score SpCas9 gRNAs for CRISPRa and CRISPRi applications for the human genome [@crisprai]. The function `addCrispraiScores` implements this algorithm to add scores to the `GuideSet`; it requires several inputs in addition to the `GuideSet` object:
 
-```{r}
-# gs <- addCrispraiScores(gs,
-#                         gr=target_region,
-#                         tssObject=tss_human,
-#                         geneCol="gene_id",
-#                         modality="CRISPRa",
-#                         chromatinFiles=NULL,
-#                         fastaFile=NULL)
-# gs
+- `gr` is the `GRanges` object derived from the `queryTss` function and used to create the `GuideSet` object. In our example, this is `target_region`.
+- `tssObject` is a `GRanges` object that contains TSS coordinates and annotation. It must also contain the following columns: `ID`, `promoter`, `tx_id`, and `gene_symbol`. Our `tssObject` in this instance is `tss_human`.
+- `geneCol` indicates which column of `tssObject` should be used as the unique gene identifier
+- `modality` is the modality of the CRISPR application; in this example it will be `"CRISPRa"`
+- `fastaFile` is the path of the FASTA file of the human reference genome; the file for the human genome (hg38) can be downloaded directly from here: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+- `chromatinFiles` is a vector of length 3 specifying the path of files containing the chromatin accessibility data needed for the algorithm in hg38 coordinates. The chromatin files can be downloaded from Zenodo [here](https://zenodo.org/record/6716721#.YrzCfS-cY4d).
+
+Let's prepare the inputs for `addCrispraiScores` then annotated our gRNAs with those scores (the required files have been downloaded locally in advance):
+
+```{r, warning=FALSE, message=FALSE, results='hide', eval=FALSE}
+fastaPath <- "/Users/hoberecl/crispraiScores/hg38.fa.gz"
+mnasePath <- "/Users/hoberecl/crispraiScores/crispria_mnase_human_K562_hg38.bigWig"
+dnasePath <- "/Users/hoberecl/crispraiScores/crispria_dnase_human_K562_hg38.bigWig"
+fairePath <- "/Users/hoberecl/crispraiScores/crispria_faire_human_K562_hg38.bigWig"
+results <- addCrispraiScores(gs,
+                             gr=target_region,
+                             tssObject=tss_human,
+                             geneCol="gene_id",
+                             modality="CRISPRa",
+                             fastaFile=fastaPath,
+                             chromatinFiles=c(mnase=mnasePath,
+                                              dnase=dnasePath,
+                                              faire=fairePath)
+                             )
 ```
+```{r, collapse=TRUE, eval=FALSE}
+results
+```
+
+This function works identically for CRISPRi applications, with modality replaced by `CRISPRi`.
 
 
 
