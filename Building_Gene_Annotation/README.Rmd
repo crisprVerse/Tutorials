@@ -17,7 +17,7 @@ Date: `r format(Sys.time(), '%d %B, %Y')`
 
 # Introduction
 
-In this tutorial we describe the process for making and using a gene annotation object, which is required input for certain `crisprDesign` functions such as `queryTxObject` and `addGeneAnnotation` (it is also referred to as a `txObject`, after the argument name the object is passed to for applicable functions). This object is a `GRangesList` that is composed from a `TxDb` object for the sake of convenience and speed when retrieving gene annotation with `crisprDesign` functions; while a `TxDb` can be passed to `txObject` arguments, we recommend constructing and using a gene annotation object described herein. We will also describe the process for constructing and using a `tssObject`, which contains transcription start site (TSS) coordinates and is a `GRanges` rather than a `GRangesList`.
+In this tutorial we describe the process for making and using a gene annotation object, which is required input for certain `crisprDesign` functions such as `queryTxObject` and `addGeneAnnotation` (it is also referred to as a `txObject`, after the argument name the object is passed to for applicable functions). This object is a `GRangesList` that is composed from a `TxDb` object to provide convenience and speed when retrieving gene annotation with `crisprDesign` functions. While a `TxDb` can be passed to `txObject` arguments, we recommend constructing and using a gene annotation object described herein. We will also describe the process for constructing and using a transcription start site (TSS) annotation object (similarly also referred to as a `tssObject`), which contains TSS coordinates and is a `GRanges` rather than a `GRangesList`.
 
 
 # Installation
@@ -51,12 +51,12 @@ library(crisprDesignData)
 
 # Building gene annotation objects
 
-The following demonstrations will first create `TxDb` objects from the Ensembl database with `getTxDb` from `crisprDesign`, which uses the `GenomicFeatures` function `makeTxDbFromEnsembl`, before converting them to our gene annotation objects. Note that this method requires an internet connection. If you have a General Feature Format (GFF) file from which you want to construct the gene annotation object, you can pass this to the `file` argument of the `crisprDesign` function `getTxDb`; this will create the `TxDb` object using the `GenomicFeatures` function `makeTxDbFromGFF`.
+The following demonstration will first create a `TxDb` object from the Ensembl database with `getTxDb` from `crisprDesign`, which uses the `GenomicFeatures` function `makeTxDbFromEnsembl`, before converting it to a gene annotation object. Note that this method requires an internet connection. If you have a General Feature Format (GFF) file from which you want to construct the gene annotation object, you can pass this to the `file` argument of the `crisprDesign` function `getTxDb`; this will create the `TxDb` object using the `GenomicFeatures` function `makeTxDbFromGFF`.
 
 
 ## Building a txObject
 
-In this example, we construct a gene annotation object for the human genome, Ensembl release 104 (hg38). We then show how to subset this object to only contain annotation for our gene of interest, IQSEC3.
+In this example, we construct a gene annotation object for the human genome, Ensembl release 104 (hg38). We then show how to subset this object to only contain annotation for our gene of interest, IQSEC3, although this method also works for an arbitrary list of genes. Subsetting is useful if memory constraints are a concern and only annotation for the gene(s) of interest is(are) desired.
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
 library(GenomicRanges)
@@ -70,7 +70,7 @@ grList <- TxDb2GRangesList(txdb)
 meta <- metadata(grList)
 gene_id <- "ENSG00000120645" #IQSEC3
 grListExample <- lapply(grList, function(gr){
-    gr[gr$gene_id == gene_id]
+    gr[gr$gene_id %in% gene_id]
 })
 grListExample <- GRangesList(grListExample)
 metadata(grListExample) <- meta
@@ -86,29 +86,17 @@ grListExample$transcripts
 
 ## Building a tssObject
 
-Building a `tssObject` follows from the example above. This can be applied to our subset example or to the genome-wide annotation:
+Building a `tssObject` requires only one additional step after constructing the `txObject` described above, with the convenience function `getTssObjectFromTxObject` in `crisprDesign`. Let's apply the function to our subset example:
 
 ```{r}
-tssObjectExample <- grListExample[["fiveUTRs"]]
-tssObjectExample <- tssObjectExample[tssObjectExample$exon_rank == 1]
-cols <- c("tx_id", "gene_id", "gene_symbol")
-mcols(tssObjectExample) <- mcols(tssObjectExample)[,cols]
-tssObjectExample$promoter <- paste0("P", seq_along(tssObjectExample))
-tssObjectExample$ID <- paste0(tssObjectExample$gene_symbol, "_", tssObjectExample$promoter)
-
-# make sure we only retain one coordinate:
-if (as.character(strand(tssObjectExample))[[1]] == "+"){
-    end(tssObjectExample) <- start(tssObjectExample)
-} else {
-    start(tssObjectExample) <- end(tssObjectExample)
-}
+tssObjectExample <- getTssObjectFromTxObject(grListExample)
 tssObjectExample
 ```
 
 
 # Using gene annotation objects
 
-Gene (or TSS) annotation objects are necessary for the full characterization of guide-RNAs (gRNAs) and serve as input for several `crisprDesign` functions, including `queryTxObject` (or `queryTssObject`), `addGeneAnnotation`, and `addSpacerAlignments`. The following sections demonstrate the information it contains and how to use the object. We will take advantage of precomputed gene annotation objects available in the `crisprDesignData` package:
+Gene (or TSS) annotation objects are necessary for the full characterization of guide-RNAs (gRNAs) and serve as input for several `crisprDesign` functions, including `queryTxObject`, `queryTssObject`, `addGeneAnnotation`, `addTssAnnotation`, and `addSpacerAlignments`. The following sections demonstrate the information it contains and how to use the object. We will take advantage of precomputed gene annotation objects available in the `crisprDesignData` package:
 
 |  Object name | Object class | Version | Description |
 |----------- | ----------- | ----------- |----------- | 
@@ -128,25 +116,25 @@ data(txdb_human, package="crisprDesignData")
 
 We can look at metadata information about the gene model by using the `metadata` function from the `S4Vectors` package:
 
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, collapse=TRUE}
 head(S4Vectors::metadata(txdb_human))
 ```
 
 The object is a `GRangesList` with 7 elements that contain genomic coordinates for different levels of the gene model:
 
-```{r}
+```{r, collapse=TRUE}
 names(txdb_human)
 ```
 
 As an example, let's look at the `GRanges` containing genomic coordinates for all exons represented in the gene model:
 
-```{r}
+```{r, collapse=TRUE}
 txdb_human$exons
 ```
 
 The function `queryTxObject` in `crisprDesign` is a user-friendly function to work with such objects. For instance we can find the CDS coordinates for the KRAS transcripts using the following lines of code:
 
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, collapse=TRUE}
 cds <- queryTxObject(txdb_human,
                      featureType="cds",
                      queryColumn="gene_symbol",
@@ -154,7 +142,7 @@ cds <- queryTxObject(txdb_human,
 head(cds)
 ```
 
-We can also pass `txdb_human` to the `txObject` parameter of `addGeneAnnotation` (required) and `addSpacerAlignments` (optional) to add gene annotation information to a `GuideSet`, provided the `genome` of the `GuideSet` is also `hg38`. Below is a simple examples using `txdb_human` in `addGeneAnnotation`:
+We can also pass `txdb_human` to the `txObject` parameter of `addGeneAnnotation` (required) and `addSpacerAlignments` (optional) to add gene annotation information to a `GuideSet`, provided the `genome` of the `GuideSet` is also `hg38`. Below is a simple example using `txdb_human` in `addGeneAnnotation`:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -164,7 +152,7 @@ gs <- findSpacers(head(cds),
 gs <- head(gs)
 ```
 
-```{r}
+```{r, collapse=TRUE}
 ## add gene annnotation
 gs1 <- addGeneAnnotation(gs,
                          txObject=txdb_human)
@@ -174,13 +162,13 @@ geneAnnotation(gs1)
 For examples using a gene annotation object in `addSpacerAlignments`, see the tutorials for [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) or [CRISPRko design with Cas12a](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas12a).
 
 
-# Using tssObjects
+## Using tssObjects
 
 The `tss_human` and `tss_mouse` objects are `GRanges` representing the TSS coordinates for human and mouse, respectively. The coordinates were extracted from the transcripts stored in the Ensembl-based models `txdb_human` and `txdb_mouse` using the function `getTssObjectFromTxObject` from `crisprDesign`.
 
 Let's take a look at `tss_human`:
 
-```{r}
+```{r, collapse=TRUE}
 data(tss_human, package="crisprDesignData")
 head(tss_human)
 ```
@@ -190,7 +178,7 @@ The function `queryTss` in `crisprDesign` is a user-friendly function to work wi
 
 For instance, if we want to target the region 500 nucleotides upstream of any of the KRAS TSSs, one can use the following lines of code:
 
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, collapse=TRUE}
 library(crisprDesign)
 tss <- queryTss(tss_human,
                 queryColumn="gene_symbol",
@@ -199,7 +187,7 @@ tss <- queryTss(tss_human,
 tss
 ```
 
-As with `txObject`s, `tssObject`s can be passed to the `crisprDesign` functions `addGeneAnnotation` and `addSpacerAlignments` (both optional). This will append TSS annotation to the `GuideSet`; see the tutorials [CRISPRa design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRa) or [CRISPRi design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRi) for more information.
+Similar to `txObject`s and the `addGeneAnnotation` function, `tssObject`s can be passed to the `crisprDesign` function `addTssAnnotation`, and is also an optional argument for `addSpacerAlignments`. The functions append TSS annotation to the `GuideSet` with respect to gRNAs and their alignments, respectively; see the tutorials [CRISPRa design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRa) or [CRISPRi design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRi) for more information.
 
 
 # License
