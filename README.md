@@ -18,7 +18,7 @@
 7. [CRISPRkd design with Cas13d](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRkd_CasRx)
 8. [CRISPRbe design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRbe)
 9. [CRISPRa design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRa)
-10. CRISPRi design
+10. [CRISPRi design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRi)
 
 
 ### Less common gRNA design workflows
