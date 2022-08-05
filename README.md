@@ -15,7 +15,7 @@
 
 5. [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
 6. CRISPRko design with Cas12a
-7. CRISPRkd design with Cas13d
+7. [CRISPRkd design with Cas13d](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRkd_CasRx)
 8. [CRISPRbe design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRbe)
 9. [CRISPRa design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRa)
 10. CRISPRi design
