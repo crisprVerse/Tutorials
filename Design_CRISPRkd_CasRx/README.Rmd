@@ -26,14 +26,27 @@ This package utilizes the `crisprBase` package to enable gRNA design for any CRI
 
 # Installation
 
-`crisprDesign` can be installed from Bioconductor using the following commands in an R session:
+
+The Bioconductor packages needed in this vignette can be downloaded using
+the following commands:
+
 
 ```{r, eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 ```
+
+The GitHub packages needed in this vignette can be downloaded using
+the following commands:
+
+```{r, eval=FALSE}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
+```
+
 
 Users interested in contributing to `crisprDesign` might want to look at the following CRISPR-related package dependencies:
 
@@ -59,17 +72,13 @@ this tutorial.
 
 ## Loading packages
 
-The following examples use the `crisprBase`, `crisprDesign`, `crisprDesignData`, and `BSgenome.Hsapiens.UCSC.hg38` packages. Before we begin, let's install and load the necessary packages (`crisprDesign` (and tacitly its dependency `crisprBase`) are installed in the **Installation** section).
+The following examples use the `crisprBase`, `crisprDesign`, `crisprDesignData`, and `BSgenome.Hsapiens.UCSC.hg38` packages. Before we begin, let's load the 
+necessary packages:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
 library(crisprBase)
 library(crisprDesign)
-
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
 library(crisprDesignData)
-
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
