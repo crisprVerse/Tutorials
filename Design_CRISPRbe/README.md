@@ -9,14 +9,18 @@ Using crisprDesign to design gRNAs for CRISPRbe
     BE4max</a>
     -   <a href="#loading-packages" id="toc-loading-packages">Loading
         packages</a>
-    -   <a href="#example-workflow" id="toc-example-workflow">Example
-        workflow</a>
+    -   <a href="#creating-the-guideset" id="toc-creating-the-guideset">Creating
+        the GuideSet</a>
+    -   <a href="#annotating-the-guideset"
+        id="toc-annotating-the-guideset">Annotating the GuideSet</a>
+        -   <a href="#adding-edited-alleles" id="toc-adding-edited-alleles">Adding
+            edited alleles</a>
 -   <a href="#session-info" id="toc-session-info">Session Info</a>
 -   <a href="#references" id="toc-references">References</a>
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 04 August, 2022
+Date: 05 August, 2022
 
 # Introduction
 
@@ -69,34 +73,9 @@ You can contribute to the package by submitting pull requests to our
 
 # Terminology
 
-CRISPR nucleases are examples of RNA-guided endonucleases. They require
-two binding components for cleavage. First, the nuclease needs to
-recognize a constant nucleotide motif in the target DNA called the
-protospacer adjacent motif (PAM) sequence. Second, the gRNA, which
-guides the nuclease to the target sequence, needs to bind to a
-complementary sequence adjacent to the PAM sequence, called the
-**protospacer** sequence. The latter can be thought of as a variable
-binding motif that can be specified by designing corresponding gRNA
-sequences.
-
-The **spacer** sequence is used in the gRNA construct to guide the
-CRISPR nuclease to the target **protospacer** sequence in the host
-genome.
-
-For DNA-targeting nucleases, the nucleotide sequence of the spacer and
-protospacer are identical. For RNA-targeting nucleases, they are the
-reverse complement of each other.
-
-While a gRNA spacer sequence may not always uniquely target the host
-genome (i.e. it may map to multiple protospacers in the host genome), we
-can, for a given reference genome, uniquely identify a protospacer
-sequence with a combination of 3 attributes:
-
--   `chr`: chromosome name
--   `strand`: forward (+) or reverse (-)
--   `pam_site`: genomic coordinate of the first nucleotide of the
-    nuclease-specific PAM sequence (e.g. for SpCas9, the “N” in the NGG
-    PAM sequence; for AsCas12a, the first “T” of the TTTV PAM sequence)
+See the [CRISPRko design
+vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
+to get familiar with the terminology used throughout this tutorial.
 
 # CRISPR base editing with BE4max
 
@@ -120,7 +99,7 @@ BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
-## Example workflow
+## Creating the GuideSet
 
 We illustrate the CRISPR base editing (CRISPRbe) functionalities of
 `crisprDesign` by designing and characterizing gRNAs targeting the human
@@ -191,6 +170,19 @@ gs <- findSpacers(gr,
                   crisprNuclease=BE4max)
 gs <- gs[57:58]
 ```
+
+## Annotating the GuideSet
+
+Next, we annotate our candidate gRNAs to assess quality. There are
+several functions in `crisprDesign` that provide annotation for features
+that are nonspecific to CRISPRbe, for which we refer the reader to the
+[CRISPRko design with
+Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
+tutorial for more information. The sections below will cover annotation
+functions that are of particular interest to, or deserve extra care for
+CRISPRbe applications.
+
+### Adding edited alleles
 
 The function `addEditedAlleles` finds, characterizes, and scores
 predicted edited alleles for each gRNA and a chosen transcript. It
