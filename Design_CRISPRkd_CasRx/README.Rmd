@@ -43,7 +43,9 @@ The GitHub packages needed in this vignette can be downloaded using
 the following commands:
 
 ```{r, eval=FALSE}
-install.packages("devtools")
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+
 devtools::install_github("Jfortin1/crisprDesignData")
 ```
 
@@ -113,12 +115,11 @@ mrna <- getMrnaSequences(txids=txid,
 mrna
 ```
 
-We then use the function `findSpacers` to design our gRNAs. For the sake of brevity we will only consider a subset of 100 gRNAs:
+We then use the function `findSpacers` to design our gRNAs.
 
 ```{r}
 gs <- findSpacers(mrna[["ENST00000311936"]],
                   crisprNuclease=CasRx)
-gs <- gs[1000:1100]
 head(gs)
 ```
 
@@ -141,32 +142,66 @@ or deserve extra care for CRISPRkd applications.
 
 ### Adding spacer alignments
 
-Since our CRISPR nuclease targets RNA rather than DNA, off-target searches should be restricted to the transcriptome. We can perform such a search using one of two methods. For the first method, we set the `aligner` argument to `"biostrings"` and pass a `DNAStringSet` representation of the transcriptome to the argument `custom_seq`. We can create this representation with `getMrnaSequences` and all transcript IDs found in `txdb_human`. For the sake brevity and demonstration, however, we will limit our search to mRNAs belonging to the KRAS gene. We will also search for off-targets having up to one mismatch and pass `txdb_human` to the `txObject` argument so that our alignments will be accompanied with gene annotation. 
+Since our CRISPR nuclease targets RNA rather than DNA, off-target searches should be restricted to the transcriptome. We can perform such a search using one of two methods.
 
-```{r, warning=FALSE, message=FALSE, results='hide'}
-tx_ids <- c("ENST00000256078", "ENST00000311936",
-            "ENST00000557334", "ENST00000556131")
-kras_mrnas <- getMrnaSequences(txids=tx_ids,
-                               bsgenome=bsgenome,
+#### Adding spacer alignments with Biostrings
+
+For the first method, we set the `aligner` argument to `"biostrings"` and pass a `DNAStringSet` representation of the transcriptome to the argument `custom_seq`. We can create this representation with `getMrnaSequences` and all transcript IDs found in `txdb_human`. The code below uses this method to search for off-targets having up to one mismatch and passes `txdb_human` to the `txObject` argument so that the alignments will be accompanied with gene annotation.
+
+```{r, eval=FALSE}
+exon_ids <- unique(txdb_human$exons$tx_id)
+mrnasHuman <- getMrnaSequences(exon_ids,
+                               bsgenome=BSgenome.Hsapiens.UCSC.hg38,
                                txObject=txdb_human)
-gs <- addSpacerAlignments(gs,
-                          aligner="biostrings",
-                          txObject=txdb_human,
-                          n_mismatches=1,
-                          custom_seq=kras_mrnas)
-```
-```{r}
-tail(gs)
+## long run time
+results <- addSpacerAlignments(gs,
+                               aligner="biostrings",
+                               txObject=txdb_human,
+                               n_mismatches=1,
+                               custom_seq=mrnasHuman)
 ```
 
-The columns `n0_gene` and `n0_tx` report the number of on-targets at the gene- and transcript-level, respectively. For instance, for all spacers shown above `n0_tx` is equal to 3, meaning they all map to three isoforms of KRAS (since our `custom_seq` is made up of KRAS isoforms only). We can use the `onTargets` accessor function to look at each alignment for the first spacer:
+NOTE: since `mrnasHuman` contains many sequences (>100k), this method has a very long run time; for transcriptome-wide searches, or for searches against a large number of sequences, we recommend the following method instead.
 
-```{r}
-# onTargets(gs["spacer_1095"]) # bug: incorrect spacer alignments selected
-onTargets(gs)[names(onTargets(gs)) == "spacer_1095"]
-```
+
+#### Adding spacer alignments with bowtie or BWA
 
 The second method uses the `bowtie` (or `bwa`) aligner. This requires building a transcriptome bowtie (or BWA) index file first. See the [Building genome indices for short read aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) tutorial for more information. 
+
+Here we set `aligner` to `"bowtie"` and pass a precomputed transcriptome bowtie index to `aligner_index` to find off-targets:
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+bowtie_index <- "/Users/hoberecl/crisprIndices/bowtie/ensembl_human_104/ensembl_human_104"
+results <- addSpacerAlignments(gs,
+                               aligner="bowtie",
+                               aligner_index=bowtie_index,
+                               txObject=txdb_human,
+                               n_mismatches=1)
+```
+```{r}
+head(results)
+```
+
+The columns `n0_gene` and `n0_tx` report the number of on-targets at the gene- and transcript-level, respectively. For instance, each spacer shown above shows `n0_gene` equal to 1 and `n0_tx` equal to 4, meaning each spacer maps to all four isoforms of KRAS. We can retrieve information about each alignment with the `onTargets` function. Looking at the on-targets for the first spacer we can see where the target `pam_site` is relative to the start of the transcript with respect to each isoform of KRAS.
+
+```{r}
+onTargets(results["spacer_1"])
+```
+
+Note that each annotated alignment is specific to the transcript ID given under `seqnames`.
+
+Below is a spacer that targets (with no mismatches) multiple genes.
+
+```{r}
+results["spacer_244"]
+```
+
+Upon further inspection of this spacer's alignments, however, we can see that the off-target occurs in the pseudogene KRASP1, and should be harmless.
+
+```{r}
+onTargets(results["spacer_244"])
+```
+
 
 
 # Session Info

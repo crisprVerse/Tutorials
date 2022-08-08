@@ -19,7 +19,7 @@ Using crisprDesign to design gRNAs for CRISPRkd with CasRx
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 05 August, 2022
+Date: 08 August, 2022
 
 # Introduction
 
@@ -45,14 +45,25 @@ sequences.
 
 # Installation
 
-`crisprDesign` can be installed from Bioconductor using the following
-commands in an R session:
+The Bioconductor packages needed in this vignette can be downloaded
+using the following commands:
 
 ``` r
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+```
+
+The GitHub packages needed in this vignette can be downloaded using the
+following commands:
+
+``` r
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+
+devtools::install_github("Jfortin1/crisprDesignData")
 ```
 
 Users interested in contributing to `crisprDesign` might want to look at
@@ -82,19 +93,12 @@ to get familiar with the terminology used throughout this tutorial.
 
 The following examples use the `crisprBase`, `crisprDesign`,
 `crisprDesignData`, and `BSgenome.Hsapiens.UCSC.hg38` packages. Before
-we begin, let’s install and load the necessary packages (`crisprDesign`
-(and tacitly its dependency `crisprBase`) are installed in the
-**Installation** section).
+we begin, let’s load the necessary packages:
 
 ``` r
 library(crisprBase)
 library(crisprDesign)
-
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
 library(crisprDesignData)
-
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
@@ -158,33 +162,31 @@ mrna
     ##     width seq                                               names               
     ## [1]  5306 CTAGGCGGCGGCCGCGGCGGCGG...GTAATAAAAATAGTTACAGTGAC ENST00000311936
 
-We then use the function `findSpacers` to design our gRNAs. For the sake
-of brevity we will only consider a subset of 100 gRNAs:
+We then use the function `findSpacers` to design our gRNAs.
 
 ``` r
 gs <- findSpacers(mrna[["ENST00000311936"]],
                   crisprNuclease=CasRx)
-gs <- gs[1000:1100]
 head(gs)
 ```
 
     ## GuideSet object with 6 ranges and 5 metadata columns:
-    ##               seqnames    ranges strand |             protospacer
-    ##                  <Rle> <IRanges>  <Rle> |          <DNAStringSet>
-    ##   spacer_1000 region_1      1023      + | CCTAAGATTTCTGTCTTGGGGCT
-    ##   spacer_1001 region_1      1024      + | CTAAGATTTCTGTCTTGGGGCTT
-    ##   spacer_1002 region_1      1025      + | TAAGATTTCTGTCTTGGGGCTTT
-    ##   spacer_1003 region_1      1026      + | AAGATTTCTGTCTTGGGGCTTTT
-    ##   spacer_1004 region_1      1027      + | AGATTTCTGTCTTGGGGCTTTTG
-    ##   spacer_1005 region_1      1028      + | GATTTCTGTCTTGGGGCTTTTGG
-    ##                          pam  pam_site  cut_site      region
-    ##               <DNAStringSet> <numeric> <numeric> <character>
-    ##   spacer_1000              T      1023        NA    region_1
-    ##   spacer_1001              T      1024        NA    region_1
-    ##   spacer_1002              T      1025        NA    region_1
-    ##   spacer_1003              G      1026        NA    region_1
-    ##   spacer_1004              G      1027        NA    region_1
-    ##   spacer_1005              T      1028        NA    region_1
+    ##            seqnames    ranges strand |             protospacer            pam
+    ##               <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
+    ##   spacer_1 region_1        24      + | CTAGGCGGCGGCCGCGGCGGCGG              A
+    ##   spacer_2 region_1        25      + | TAGGCGGCGGCCGCGGCGGCGGA              G
+    ##   spacer_3 region_1        26      + | AGGCGGCGGCCGCGGCGGCGGAG              G
+    ##   spacer_4 region_1        27      + | GGCGGCGGCCGCGGCGGCGGAGG              C
+    ##   spacer_5 region_1        28      + | GCGGCGGCCGCGGCGGCGGAGGC              A
+    ##   spacer_6 region_1        29      + | CGGCGGCCGCGGCGGCGGAGGCA              G
+    ##             pam_site  cut_site      region
+    ##            <numeric> <numeric> <character>
+    ##   spacer_1        24        NA    region_1
+    ##   spacer_2        25        NA    region_1
+    ##   spacer_3        26        NA    region_1
+    ##   spacer_4        27        NA    region_1
+    ##   spacer_5        28        NA    region_1
+    ##   spacer_6        29        NA    region_1
     ##   -------
     ##   seqinfo: 1 sequence from custom genome
     ##   crisprNuclease: CasRx
@@ -202,12 +204,12 @@ head(spacers(gs))
 
     ## DNAStringSet object of length 6:
     ##     width seq                                               names               
-    ## [1]    23 AGCCCCAAGACAGAAATCTTAGG                           spacer_1000
-    ## [2]    23 AAGCCCCAAGACAGAAATCTTAG                           spacer_1001
-    ## [3]    23 AAAGCCCCAAGACAGAAATCTTA                           spacer_1002
-    ## [4]    23 AAAAGCCCCAAGACAGAAATCTT                           spacer_1003
-    ## [5]    23 CAAAAGCCCCAAGACAGAAATCT                           spacer_1004
-    ## [6]    23 CCAAAAGCCCCAAGACAGAAATC                           spacer_1005
+    ## [1]    23 CCGCCGCCGCGGCCGCCGCCTAG                           spacer_1
+    ## [2]    23 TCCGCCGCCGCGGCCGCCGCCTA                           spacer_2
+    ## [3]    23 CTCCGCCGCCGCGGCCGCCGCCT                           spacer_3
+    ## [4]    23 CCTCCGCCGCCGCGGCCGCCGCC                           spacer_4
+    ## [5]    23 GCCTCCGCCGCCGCGGCCGCCGC                           spacer_5
+    ## [6]    23 TGCCTCCGCCGCCGCGGCCGCCG                           spacer_6
 
 ``` r
 head(protospacers(gs))
@@ -215,12 +217,12 @@ head(protospacers(gs))
 
     ## DNAStringSet object of length 6:
     ##     width seq                                               names               
-    ## [1]    23 CCTAAGATTTCTGTCTTGGGGCT                           spacer_1000
-    ## [2]    23 CTAAGATTTCTGTCTTGGGGCTT                           spacer_1001
-    ## [3]    23 TAAGATTTCTGTCTTGGGGCTTT                           spacer_1002
-    ## [4]    23 AAGATTTCTGTCTTGGGGCTTTT                           spacer_1003
-    ## [5]    23 AGATTTCTGTCTTGGGGCTTTTG                           spacer_1004
-    ## [6]    23 GATTTCTGTCTTGGGGCTTTTGG                           spacer_1005
+    ## [1]    23 CTAGGCGGCGGCCGCGGCGGCGG                           spacer_1
+    ## [2]    23 TAGGCGGCGGCCGCGGCGGCGGA                           spacer_2
+    ## [3]    23 AGGCGGCGGCCGCGGCGGCGGAG                           spacer_3
+    ## [4]    23 GGCGGCGGCCGCGGCGGCGGAGG                           spacer_4
+    ## [5]    23 GCGGCGGCCGCGGCGGCGGAGGC                           spacer_5
+    ## [6]    23 CGGCGGCCGCGGCGGCGGAGGCA                           spacer_6
 
 ## Annotating the GuideSet
 
@@ -237,106 +239,190 @@ CRISPRkd applications.
 
 Since our CRISPR nuclease targets RNA rather than DNA, off-target
 searches should be restricted to the transcriptome. We can perform such
-a search using one of two methods. For the first method, we set the
-`aligner` argument to `"biostrings"` and pass a `DNAStringSet`
-representation of the transcriptome to the argument `custom_seq`. We can
-create this representation with `getMrnaSequences` and all transcript
-IDs found in `txdb_human`. For the sake brevity and demonstration,
-however, we will limit our search to mRNAs belonging to the KRAS gene.
-We will also search for off-targets having up to one mismatch and pass
-`txdb_human` to the `txObject` argument so that our alignments will be
-accompanied with gene annotation.
+a search using one of two methods.
+
+#### Adding spacer alignments with Biostrings
+
+For the first method, we set the `aligner` argument to `"biostrings"`
+and pass a `DNAStringSet` representation of the transcriptome to the
+argument `custom_seq`. We can create this representation with
+`getMrnaSequences` and all transcript IDs found in `txdb_human`. The
+code below uses this method to search for off-targets having up to one
+mismatch and passes `txdb_human` to the `txObject` argument so that the
+alignments will be accompanied with gene annotation.
 
 ``` r
-tx_ids <- c("ENST00000256078", "ENST00000311936",
-            "ENST00000557334", "ENST00000556131")
-kras_mrnas <- getMrnaSequences(txids=tx_ids,
-                               bsgenome=bsgenome,
+exon_ids <- unique(txdb_human$exons$tx_id)
+mrnasHuman <- getMrnaSequences(exon_ids,
+                               bsgenome=BSgenome.Hsapiens.UCSC.hg38,
                                txObject=txdb_human)
-gs <- addSpacerAlignments(gs,
-                          aligner="biostrings",
-                          txObject=txdb_human,
-                          n_mismatches=1,
-                          custom_seq=kras_mrnas)
+## long run time
+results <- addSpacerAlignments(gs,
+                               aligner="biostrings",
+                               txObject=txdb_human,
+                               n_mismatches=1,
+                               custom_seq=mrnasHuman)
 ```
 
-``` r
-tail(gs)
-```
+NOTE: since `mrnasHuman` contains many sequences (\>100k), this method
+has a very long run time; for transcriptome-wide searches, or for
+searches against a large number of sequences, we recommend the following
+method instead.
 
-    ## GuideSet object with 6 ranges and 10 metadata columns:
-    ##               seqnames    ranges strand |             protospacer
-    ##                  <Rle> <IRanges>  <Rle> |          <DNAStringSet>
-    ##   spacer_1095 region_1      1118      + | AGCTTTTGAATCATCCCTATTCT
-    ##   spacer_1096 region_1      1119      + | GCTTTTGAATCATCCCTATTCTG
-    ##   spacer_1097 region_1      1120      + | CTTTTGAATCATCCCTATTCTGT
-    ##   spacer_1098 region_1      1121      + | TTTTGAATCATCCCTATTCTGTG
-    ##   spacer_1099 region_1      1122      + | TTTGAATCATCCCTATTCTGTGT
-    ##   spacer_1100 region_1      1123      + | TTGAATCATCCCTATTCTGTGTT
-    ##                          pam  pam_site  cut_site      region     n0_tx
-    ##               <DNAStringSet> <numeric> <numeric> <character> <numeric>
-    ##   spacer_1095              G      1118        NA    region_1         3
-    ##   spacer_1096              T      1119        NA    region_1         3
-    ##   spacer_1097              G      1120        NA    region_1         3
-    ##   spacer_1098              T      1121        NA    region_1         3
-    ##   spacer_1099              T      1122        NA    region_1         3
-    ##   spacer_1100              T      1123        NA    region_1         3
-    ##                   n1_tx   n0_gene   n1_gene
-    ##               <numeric> <numeric> <numeric>
-    ##   spacer_1095         0         1         0
-    ##   spacer_1096         0         1         0
-    ##   spacer_1097         0         1         0
-    ##   spacer_1098         0         1         0
-    ##   spacer_1099         0         1         0
-    ##   spacer_1100         0         1         0
-    ##                                                                        alignments
-    ##                                                                     <GRangesList>
-    ##   spacer_1095 ENST00000557334:722:+,ENST00000311936:1088:+,ENST00000256078:1246:+
-    ##   spacer_1096 ENST00000256078:1179:+,ENST00000557334:756:+,ENST00000311936:1122:+
-    ##   spacer_1097 ENST00000311936:1055:+,ENST00000256078:1213:+,ENST00000557334:790:+
-    ##   spacer_1098 ENST00000557334:723:+,ENST00000311936:1089:+,ENST00000256078:1247:+
-    ##   spacer_1099 ENST00000256078:1180:+,ENST00000557334:757:+,ENST00000311936:1123:+
-    ##   spacer_1100 ENST00000311936:1056:+,ENST00000256078:1214:+,ENST00000557334:791:+
-    ##   -------
-    ##   seqinfo: 1 sequence from custom genome
-    ##   crisprNuclease: CasRx
-
-The columns `n0_gene` and `n0_tx` report the number of on-targets at the
-gene- and transcript-level, respectively. For instance, for all spacers
-shown above `n0_tx` is equal to 3, meaning they all map to three
-isoforms of KRAS (since our `custom_seq` is made up of KRAS isoforms
-only). We can use the `onTargets` accessor function to look at each
-alignment for the first spacer:
-
-``` r
-# onTargets(gs["spacer_1095"]) # bug: incorrect spacer alignments selected
-onTargets(gs)[names(onTargets(gs)) == "spacer_1095"]
-```
-
-    ## GRanges object with 3 ranges and 9 metadata columns:
-    ##                      seqnames    ranges strand |                 spacer
-    ##                         <Rle> <IRanges>  <Rle> |            <character>
-    ##   spacer_1095 ENST00000256078      1242      + | AGAATAGGGATGATTCAAAA..
-    ##   spacer_1095 ENST00000311936      1118      + | AGAATAGGGATGATTCAAAA..
-    ##   spacer_1095 ENST00000557334       786      + | AGAATAGGGATGATTCAAAA..
-    ##                           protospacer            pam  pam_site n_mismatches
-    ##                        <DNAStringSet> <DNAStringSet> <numeric>    <numeric>
-    ##   spacer_1095 AGCTTTTGAATCATCCCTATTCT              G      1242            0
-    ##   spacer_1095 AGCTTTTGAATCATCCCTATTCT              G      1118            0
-    ##   spacer_1095 AGCTTTTGAATCATCCCTATTCT              G       786            0
-    ##               canonical  cut_site         gene_id gene_symbol
-    ##               <logical> <numeric>     <character> <character>
-    ##   spacer_1095      TRUE        NA ENSG00000133703        KRAS
-    ##   spacer_1095      TRUE        NA ENSG00000133703        KRAS
-    ##   spacer_1095      TRUE        NA ENSG00000133703        KRAS
-    ##   -------
-    ##   seqinfo: 4 sequences from custom genome
+#### Adding spacer alignments with bowtie or BWA
 
 The second method uses the `bowtie` (or `bwa`) aligner. This requires
 building a transcriptome bowtie (or BWA) index file first. See the
 [Building genome indices for short read
 aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
 tutorial for more information.
+
+Here we set `aligner` to `"bowtie"` and pass a precomputed transcriptome
+bowtie index to `aligner_index` to find off-targets:
+
+``` r
+bowtie_index <- "/Users/hoberecl/crisprIndices/bowtie/ensembl_human_104/ensembl_human_104"
+results <- addSpacerAlignments(gs,
+                               aligner="bowtie",
+                               aligner_index=bowtie_index,
+                               txObject=txdb_human,
+                               n_mismatches=1)
+```
+
+``` r
+head(results)
+```
+
+    ## GuideSet object with 6 ranges and 10 metadata columns:
+    ##            seqnames    ranges strand |             protospacer            pam
+    ##               <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
+    ##   spacer_1 region_1        24      + | CTAGGCGGCGGCCGCGGCGGCGG              A
+    ##   spacer_2 region_1        25      + | TAGGCGGCGGCCGCGGCGGCGGA              G
+    ##   spacer_3 region_1        26      + | AGGCGGCGGCCGCGGCGGCGGAG              G
+    ##   spacer_4 region_1        27      + | GGCGGCGGCCGCGGCGGCGGAGG              C
+    ##   spacer_5 region_1        28      + | GCGGCGGCCGCGGCGGCGGAGGC              A
+    ##   spacer_6 region_1        29      + | CGGCGGCCGCGGCGGCGGAGGCA              G
+    ##             pam_site  cut_site      region     n0_tx     n1_tx   n0_gene
+    ##            <numeric> <numeric> <character> <numeric> <numeric> <numeric>
+    ##   spacer_1        24        NA    region_1         4         0         1
+    ##   spacer_2        25        NA    region_1         4         0         1
+    ##   spacer_3        26        NA    region_1         4         9         1
+    ##   spacer_4        27        NA    region_1         4        81         1
+    ##   spacer_5        28        NA    region_1         4        67         1
+    ##   spacer_6        29        NA    region_1         4        44         1
+    ##              n1_gene
+    ##            <numeric>
+    ##   spacer_1         0
+    ##   spacer_2         0
+    ##   spacer_3         6
+    ##   spacer_4        26
+    ##   spacer_5        18
+    ##   spacer_6         5
+    ##                                                                    alignments
+    ##                                                                 <GRangesList>
+    ##   spacer_1 ENST00000256078:24:+,ENST00000311936:24:+,ENST00000556131:24:+,...
+    ##   spacer_2 ENST00000256078:25:+,ENST00000311936:25:+,ENST00000556131:25:+,...
+    ##   spacer_3 ENST00000256078:26:+,ENST00000311936:26:+,ENST00000556131:26:+,...
+    ##   spacer_4 ENST00000256078:27:+,ENST00000311936:27:+,ENST00000556131:27:+,...
+    ##   spacer_5 ENST00000256078:28:+,ENST00000311936:28:+,ENST00000556131:28:+,...
+    ##   spacer_6 ENST00000256078:29:+,ENST00000311936:29:+,ENST00000556131:29:+,...
+    ##   -------
+    ##   seqinfo: 1 sequence from custom genome
+    ##   crisprNuclease: CasRx
+
+The columns `n0_gene` and `n0_tx` report the number of on-targets at the
+gene- and transcript-level, respectively. For instance, each spacer
+shown above shows `n0_gene` equal to 1 and `n0_tx` equal to 4, meaning
+each spacer maps to all four isoforms of KRAS. We can retrieve
+information about each alignment with the `onTargets` function. Looking
+at the on-targets for the first spacer we can see where the target
+`pam_site` is relative to the start of the transcript with respect to
+each isoform of KRAS.
+
+``` r
+onTargets(results["spacer_1"])
+```
+
+    ## GRanges object with 4 ranges and 9 metadata columns:
+    ##                   seqnames    ranges strand |                  spacer
+    ##                      <Rle> <IRanges>  <Rle> |          <DNAStringSet>
+    ##   spacer_1 ENST00000256078        24      + | CCGCCGCCGCGGCCGCCGCCTAG
+    ##   spacer_1 ENST00000311936        24      + | CCGCCGCCGCGGCCGCCGCCTAG
+    ##   spacer_1 ENST00000556131        24      + | CCGCCGCCGCGGCCGCCGCCTAG
+    ##   spacer_1 ENST00000557334        31      + | CCGCCGCCGCGGCCGCCGCCTAG
+    ##                        protospacer            pam  pam_site n_mismatches
+    ##                     <DNAStringSet> <DNAStringSet> <numeric>    <integer>
+    ##   spacer_1 CTAGGCGGCGGCCGCGGCGGCGG              A        24            0
+    ##   spacer_1 CTAGGCGGCGGCCGCGGCGGCGG              A        24            0
+    ##   spacer_1 CTAGGCGGCGGCCGCGGCGGCGG              A        24            0
+    ##   spacer_1 CTAGGCGGCGGCCGCGGCGGCGG              A        31            0
+    ##            canonical  cut_site         gene_id gene_symbol
+    ##            <logical> <numeric>     <character> <character>
+    ##   spacer_1      TRUE        NA ENSG00000133703        KRAS
+    ##   spacer_1      TRUE        NA ENSG00000133703        KRAS
+    ##   spacer_1      TRUE        NA ENSG00000133703        KRAS
+    ##   spacer_1      TRUE        NA ENSG00000133703        KRAS
+    ##   -------
+    ##   seqinfo: 7514 sequences from an unspecified genome; no seqlengths
+
+Note that each annotated alignment is specific to the transcript ID
+given under `seqnames`.
+
+Below is a spacer that targets (with no mismatches) multiple genes.
+
+``` r
+results["spacer_244"]
+```
+
+    ## GuideSet object with 1 range and 10 metadata columns:
+    ##              seqnames    ranges strand |             protospacer            pam
+    ##                 <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
+    ##   spacer_244 region_1       267      + | CTTGACGATACAGCTAATTCAGA              A
+    ##               pam_site  cut_site      region     n0_tx     n1_tx   n0_gene
+    ##              <numeric> <numeric> <character> <numeric> <numeric> <numeric>
+    ##   spacer_244       267        NA    region_1         5         0         2
+    ##                n1_gene
+    ##              <numeric>
+    ##   spacer_244         0
+    ##                                                                        alignments
+    ##                                                                     <GRangesList>
+    ##   spacer_244 ENST00000256078:267:+,ENST00000311936:267:+,ENST00000407852:77:+,...
+    ##   -------
+    ##   seqinfo: 1 sequence from custom genome
+    ##   crisprNuclease: CasRx
+
+Upon further inspection of this spacer’s alignments, however, we can see
+that the off-target occurs in the pseudogene KRASP1, and should be
+harmless.
+
+``` r
+onTargets(results["spacer_244"])
+```
+
+    ## GRanges object with 5 ranges and 9 metadata columns:
+    ##                     seqnames    ranges strand |                  spacer
+    ##                        <Rle> <IRanges>  <Rle> |          <DNAStringSet>
+    ##   spacer_244 ENST00000256078       267      + | TCTGAATTAGCTGTATCGTCAAG
+    ##   spacer_244 ENST00000311936       267      + | TCTGAATTAGCTGTATCGTCAAG
+    ##   spacer_244 ENST00000407852        77      + | TCTGAATTAGCTGTATCGTCAAG
+    ##   spacer_244 ENST00000556131       254      + | TCTGAATTAGCTGTATCGTCAAG
+    ##   spacer_244 ENST00000557334       274      + | TCTGAATTAGCTGTATCGTCAAG
+    ##                          protospacer            pam  pam_site n_mismatches
+    ##                       <DNAStringSet> <DNAStringSet> <numeric>    <integer>
+    ##   spacer_244 CTTGACGATACAGCTAATTCAGA              A       267            0
+    ##   spacer_244 CTTGACGATACAGCTAATTCAGA              A       267            0
+    ##   spacer_244 CTTGACGATACAGCTAATTCAGA              A        77            0
+    ##   spacer_244 CTTGACGATACAGCTAATTCAGA              A       254            0
+    ##   spacer_244 CTTGACGATACAGCTAATTCAGA              A       274            0
+    ##              canonical  cut_site         gene_id gene_symbol
+    ##              <logical> <numeric>     <character> <character>
+    ##   spacer_244      TRUE        NA ENSG00000133703        KRAS
+    ##   spacer_244      TRUE        NA ENSG00000133703        KRAS
+    ##   spacer_244      TRUE        NA ENSG00000220635      KRASP1
+    ##   spacer_244      TRUE        NA ENSG00000133703        KRAS
+    ##   spacer_244      TRUE        NA ENSG00000133703        KRAS
+    ##   -------
+    ##   seqinfo: 7514 sequences from an unspecified genome; no seqlengths
 
 # Session Info
 
@@ -365,68 +451,62 @@ sessionInfo()
     ##  [5] XVector_0.36.0                    GenomicRanges_1.48.0             
     ##  [7] GenomeInfoDb_1.32.2               IRanges_2.30.0                   
     ##  [9] S4Vectors_0.34.0                  BiocGenerics_0.42.0              
-    ## [11] crisprDesignData_0.99.12          crisprDesign_0.99.110            
+    ## [11] crisprDesignData_0.99.13          crisprDesign_0.99.112            
     ## [13] crisprBase_1.1.2                 
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] rjson_0.2.21                  ellipsis_0.3.2               
-    ##   [3] Rbowtie_1.36.0                fs_1.5.2                     
-    ##   [5] rstudioapi_0.13               remotes_2.4.2                
-    ##   [7] bit64_4.0.5                   interactiveDisplayBase_1.34.0
-    ##   [9] AnnotationDbi_1.58.0          fansi_1.0.3                  
-    ##  [11] xml2_1.3.3                    codetools_0.2-18             
-    ##  [13] cachem_1.0.6                  knitr_1.39                   
-    ##  [15] pkgload_1.3.0                 jsonlite_1.8.0               
-    ##  [17] Rsamtools_2.12.0              dbplyr_2.2.1                 
-    ##  [19] png_0.1-7                     shiny_1.7.2                  
-    ##  [21] BiocManager_1.30.18           readr_2.1.2                  
-    ##  [23] compiler_4.2.0                httr_1.4.3                   
-    ##  [25] basilisk_1.9.2                assertthat_0.2.1             
-    ##  [27] Matrix_1.4-1                  fastmap_1.1.0                
-    ##  [29] cli_3.3.0                     later_1.3.0                  
-    ##  [31] htmltools_0.5.3               prettyunits_1.1.1            
-    ##  [33] tools_4.2.0                   glue_1.6.2                   
-    ##  [35] GenomeInfoDbData_1.2.8        crisprBowtie_1.0.0           
-    ##  [37] dplyr_1.0.9                   rappdirs_0.3.3               
-    ##  [39] Rcpp_1.0.9                    Biobase_2.56.0               
-    ##  [41] vctrs_0.4.1                   ExperimentHub_2.4.0          
-    ##  [43] crisprBwa_1.0.0               crisprScore_1.1.14           
-    ##  [45] xfun_0.31                     stringr_1.4.0                
-    ##  [47] ps_1.7.1                      mime_0.12                    
-    ##  [49] miniUI_0.1.1.1                lifecycle_1.0.1              
-    ##  [51] restfulr_0.0.15               devtools_2.4.4               
-    ##  [53] XML_3.99-0.10                 AnnotationHub_3.4.0          
-    ##  [55] zlibbioc_1.42.0               basilisk.utils_1.9.1         
-    ##  [57] VariantAnnotation_1.42.1      hms_1.1.1                    
-    ##  [59] promises_1.2.0.1              MatrixGenerics_1.8.1         
-    ##  [61] parallel_4.2.0                SummarizedExperiment_1.26.1  
-    ##  [63] yaml_2.3.5                    curl_4.3.2                   
-    ##  [65] memoise_2.0.1                 reticulate_1.25              
-    ##  [67] biomaRt_2.52.0                stringi_1.7.8                
-    ##  [69] RSQLite_2.2.15                BiocVersion_3.15.2           
-    ##  [71] BiocIO_1.6.0                  randomForest_4.7-1.1         
-    ##  [73] crisprScoreData_1.1.3         GenomicFeatures_1.48.3       
-    ##  [75] filelock_1.0.2                pkgbuild_1.3.1               
-    ##  [77] BiocParallel_1.30.3           rlang_1.0.4                  
-    ##  [79] pkgconfig_2.0.3               matrixStats_0.62.0           
-    ##  [81] bitops_1.0-7                  evaluate_0.15                
-    ##  [83] lattice_0.20-45               purrr_0.3.4                  
-    ##  [85] htmlwidgets_1.5.4             GenomicAlignments_1.32.1     
-    ##  [87] bit_4.0.4                     tidyselect_1.1.2             
-    ##  [89] processx_3.7.0                magrittr_2.0.3               
-    ##  [91] R6_2.5.1                      profvis_0.3.7                
-    ##  [93] generics_0.1.3                DelayedArray_0.22.0          
-    ##  [95] DBI_1.1.3                     pillar_1.8.0                 
-    ##  [97] KEGGREST_1.36.3               RCurl_1.98-1.8               
-    ##  [99] tibble_3.1.8                  dir.expiry_1.4.0             
-    ## [101] crayon_1.5.1                  utf8_1.2.2                   
-    ## [103] BiocFileCache_2.4.0           urlchecker_1.0.1             
-    ## [105] tzdb_0.3.0                    rmarkdown_2.14               
-    ## [107] usethis_2.1.6                 progress_1.2.2               
-    ## [109] grid_4.2.0                    blob_1.2.3                   
-    ## [111] callr_3.7.1                   digest_0.6.29                
-    ## [113] xtable_1.8-4                  httpuv_1.6.5                 
-    ## [115] Rbwa_1.0.0                    sessioninfo_1.2.2
+    ##   [1] bitops_1.0-7                  matrixStats_0.62.0           
+    ##   [3] bit64_4.0.5                   filelock_1.0.2               
+    ##   [5] progress_1.2.2                httr_1.4.3                   
+    ##   [7] tools_4.2.0                   utf8_1.2.2                   
+    ##   [9] R6_2.5.1                      DBI_1.1.3                    
+    ##  [11] tidyselect_1.1.2              prettyunits_1.1.1            
+    ##  [13] bit_4.0.4                     curl_4.3.2                   
+    ##  [15] compiler_4.2.0                crisprBowtie_1.0.0           
+    ##  [17] cli_3.3.0                     Biobase_2.56.0               
+    ##  [19] basilisk.utils_1.9.1          crisprScoreData_1.1.3        
+    ##  [21] xml2_1.3.3                    DelayedArray_0.22.0          
+    ##  [23] randomForest_4.7-1.1          readr_2.1.2                  
+    ##  [25] rappdirs_0.3.3                stringr_1.4.0                
+    ##  [27] digest_0.6.29                 Rsamtools_2.12.0             
+    ##  [29] rmarkdown_2.14                crisprScore_1.1.14           
+    ##  [31] basilisk_1.9.2                pkgconfig_2.0.3              
+    ##  [33] htmltools_0.5.3               MatrixGenerics_1.8.1         
+    ##  [35] dbplyr_2.2.1                  fastmap_1.1.0                
+    ##  [37] rlang_1.0.4                   rstudioapi_0.13              
+    ##  [39] RSQLite_2.2.15                shiny_1.7.2                  
+    ##  [41] BiocIO_1.6.0                  generics_0.1.3               
+    ##  [43] jsonlite_1.8.0                vroom_1.5.7                  
+    ##  [45] BiocParallel_1.30.3           dplyr_1.0.9                  
+    ##  [47] VariantAnnotation_1.42.1      RCurl_1.98-1.8               
+    ##  [49] magrittr_2.0.3                GenomeInfoDbData_1.2.8       
+    ##  [51] Matrix_1.4-1                  Rcpp_1.0.9                   
+    ##  [53] fansi_1.0.3                   reticulate_1.25              
+    ##  [55] Rbowtie_1.36.0                lifecycle_1.0.1              
+    ##  [57] stringi_1.7.8                 yaml_2.3.5                   
+    ##  [59] SummarizedExperiment_1.26.1   zlibbioc_1.42.0              
+    ##  [61] BiocFileCache_2.4.0           AnnotationHub_3.4.0          
+    ##  [63] grid_4.2.0                    blob_1.2.3                   
+    ##  [65] promises_1.2.0.1              parallel_4.2.0               
+    ##  [67] ExperimentHub_2.4.0           crayon_1.5.1                 
+    ##  [69] crisprBwa_1.0.0               dir.expiry_1.4.0             
+    ##  [71] lattice_0.20-45               GenomicFeatures_1.48.3       
+    ##  [73] hms_1.1.1                     KEGGREST_1.36.3              
+    ##  [75] knitr_1.39                    pillar_1.8.0                 
+    ##  [77] rjson_0.2.21                  codetools_0.2-18             
+    ##  [79] biomaRt_2.52.0                BiocVersion_3.15.2           
+    ##  [81] XML_3.99-0.10                 glue_1.6.2                   
+    ##  [83] evaluate_0.15                 BiocManager_1.30.18          
+    ##  [85] httpuv_1.6.5                  png_0.1-7                    
+    ##  [87] vctrs_0.4.1                   tzdb_0.3.0                   
+    ##  [89] purrr_0.3.4                   assertthat_0.2.1             
+    ##  [91] cachem_1.0.6                  xfun_0.31                    
+    ##  [93] mime_0.12                     Rbwa_1.0.0                   
+    ##  [95] xtable_1.8-4                  restfulr_0.0.15              
+    ##  [97] later_1.3.0                   tibble_3.1.8                 
+    ##  [99] GenomicAlignments_1.32.1      AnnotationDbi_1.58.0         
+    ## [101] memoise_2.0.1                 interactiveDisplayBase_1.34.0
+    ## [103] ellipsis_0.3.2
 
 # References
 
