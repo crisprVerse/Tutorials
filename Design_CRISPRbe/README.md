@@ -325,7 +325,7 @@ all scores of a given mutation type across the set of edited alleles for
 a given gRNA. The `maxVariant` column indicates the most probable
 mutation type for the given gRNA based on the maximum aggregated score,
 which is stored in `maxVariantScore`. In our example, the highest score
-for `spacer_57` is `score_nonsense`, and so `maxVariant` is set to
+for `spacer_4` is `score_nonsense`, and so `maxVariant` is set to
 `nonsense`.
 
 # Session Info
