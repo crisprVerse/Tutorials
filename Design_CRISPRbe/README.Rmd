@@ -17,66 +17,58 @@ Date: `r format(Sys.time(), '%d %B, %Y')`
 
 # Introduction
 
-`crisprDesign` is a comprehensive software package for designing and annotating CRISPR guide RNA (gRNA) sequences, including the characterization of on-targets and off-targets, gene context annotation, and SNP annotation (human only). The software was developed to be as applicable and generalizable as possible. It currently support four types of CRISPR modalities (modes of perturbations): CRISPR knockout (CRISPRko), CRISPR activation (CRISPRa), CRISPR inhibition (CRISPRi) and CRISPR base editing (CRISPRbe) (see @crispracrisprireview for a review of CRISPR modalities).
-
-This package utilizes the `crisprBase` package to enable gRNA design for any CRISPR nuclease via the `CrisprNuclease` class. Nucleases that are commonly used in the field are provided, including DNA-targeting nucleases (e.g. SpCas9, AsCas12a) and RNA-targeting nuclease (e.g. CasRx (RfxCas13d)).
-
-`crisprDesign` is fully developed to work with the genome of any organism, and can also be used to design gRNAs targeting custom DNA sequences.
 
 
 # Installation
 
-`crisprDesign` can be installed from Bioconductor using the following commands in an R session:
+This tutorial used several packages from Bioconductor that can be
+installed using the following commands:
+
 
 ```{r, eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 ```
 
-Users interested in contributing to `crisprDesign` might want to look at the following CRISPR-related package dependencies:
+and the following package from GitHub:
 
-- `crisprBase`: core CRISPR functions and S4 objects
-- `crisprBowtie`: aligns gRNA spacers to genomes using the ungapped 
-aligner `bowtie`
-- `crisprBwa`: aligns gRNA spacers to genomes using the ungapped 
-aligner `BWA`
-- `crisprScore`: implements state-of-the-art on- and off-target scoring 
-algorithms
-- `crisprScoreData`: pre-trained models necessary for `crisprScore`
+```{r, eval=FALSE}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
+```
 
-You can contribute to the package by submitting pull requests to our [GitHub repo](https://github.com/Jfortin1/crisprDesign). 
+
+
 
 
 # Terminology
 
-See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar with the terminology used throughout
-this tutorial.
+See the [CRISPRko design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar 
+with the terminology used throughout this tutorial.
 
 
 # CRISPR base editing with BE4max
 
 ## Loading packages
 
-The following examples use the `crisprBase`, `crisprDesign`, `crisprDesignData`, and `BSgenome.Hsapiens.UCSC.hg38` packages. Before we begin, let's install and load the necessary packages (`crisprDesign` (and tacitly its dependency `crisprBase`) are installed in the **Installation** section).
+We first load the necessary packages for this tutorial:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
 library(crisprBase)
 library(crisprDesign)
-
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
 library(crisprDesignData)
-
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
 
 ## Creating the GuideSet
 
-We illustrate the CRISPR base editing (CRISPRbe) functionalities of `crisprDesign` by designing and characterizing gRNAs targeting the human gene KRAS using the cytidine base editor BE4max [@koblan2018improving]. 
+We illustrate the CRISPR base editing (CRISPRbe) functionalities 
+of `crisprDesign` by designing and characterizing gRNAs targeting the 
+human gene KRAS using the cytidine base editor BE4max [@koblan2018improving]. 
 
 We first load the BE4max `BaseEditor` object from the `crisprBase` package:
 
@@ -85,17 +77,30 @@ data(BE4max, package="crisprBase")
 BE4max
 ```
 
-The editing probabilities of the base editor BE4max are stored in a matrix where rows correspond to the different nucleotide substitutions, and columns correspond to the genomic coordinate relative to the PAM site. The `editingWeights` function from `crisprBase` retrieves those probabilities. One can see that C to T editing is optimal around 15 nucleotides upstream of the PAM site for the BE4max base editor:
+The editing probabilities of the base editor BE4max are stored in a 
+matrix where rows correspond to the different nucleotide substitutions, 
+and columns correspond to the genomic coordinate relative to the PAM site. 
+The `editingWeights` function from `crisprBase` retrieves those probabilities. 
+One can see that C to T editing is optimal around 15 nucleotides upstream of 
+the PAM site for the BE4max base editor:
 
 ```{r}
 crisprBase::editingWeights(BE4max)["C2T",]
 ```
 
-Let's create a `GuideSet` object targeting KRAS and, for the sake of brevity, retain only a couple gRNAs. We first need to retrieve the coordinates for KRAS. These data are conveniently stored in the `crisprDesignData` package as `txdb_human` (for more information on `txdb_human` and how to create similar gene annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial).
+Let's create the `GuideSet` containing gRNAs targeting KRAS.
+
+We first load the data containing gene regions for the human genome 
+from `crisprDesignData`:
 
 ```{r}
 data("txdb_human", package="crisprDesignData")
 ```
+
+For more information on `txdb_human` and how to create 
+similar gene annotation objects, see the [Building a gene annotation object tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation).
+
+
 
 ```{r}
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
@@ -107,7 +112,6 @@ gr <- queryTxObject(txObject=txdb_human,
 gs <- findSpacers(gr,
                   bsgenome=bsgenome,
                   crisprNuclease=BE4max)
-gs <- gs[57:58]
 ```
 
 
@@ -123,9 +127,13 @@ or deserve extra care for CRISPRbe applications.
 
 ### Adding edited alleles
 
-The function `addEditedAlleles` finds, characterizes, and scores predicted edited alleles for each gRNA and a chosen transcript. It requires a transcript-specific annotation that can be obtained with the `getTxInfoDataFrame` function. Here, we perform the analysis using the primary isoform of KRAS (Ensembl transcript ID: ENST00000311936).
+The function `addEditedAlleles` finds, characterizes, and scores 
+predicted edited alleles for each gRNA and a chosen transcript. 
+It requires a transcript-specific annotation that can be obtained 
+with the `getTxInfoDataFrame` function. Here, we perform the analysis
+using the primary isoform of KRAS (Ensembl transcript ID: ENST00000311936).
 
-We first get the transcript table for our transcript, 
+We first get the transcript table for our transcript
 
 ```{r}
 txid <- "ENST00000311936"
@@ -145,7 +153,11 @@ gs <- addEditedAlleles(gs,
                        editingWindow=editingWindow)
 ```
 
-The `editingWindow` argument specifies the window of editing that we are interested in. When not provided, it uses the default window provided in the `BaseEditor` object. Note that providing large windows can exponentially increase computing time as the number of possible alleles grows exponentially. 
+The `editingWindow` argument specifies the window of editing that we
+are interested in. When not provided, it uses the default window provided 
+in the `BaseEditor` object. Note that providing large windows can 
+exponentially increase computing time as the number of possible 
+alleles grows exponentially. 
 
 Let's retrieve the edited alleles for the first gRNA:
 
@@ -159,7 +171,11 @@ We get a `DataFrame` object with useful metadata:
 metadata(alleles)
 ```
 
-The `wildtypeAllele` reports the unedited nucleotide sequence of the region specified by the editing window (with respect to the gRNA PAM site). It is always reported from the 5' to 3' direction on the strand corresponding to the gRNA strand. The `start` and `end` fields specify the corresponding coordinates on the transcript. 
+The `wildtypeAllele` reports the unedited nucleotide sequence of the
+region specified by the editing window (with respect to the gRNA PAM site).
+It is always reported from the 5' to 3' direction on the strand corresponding 
+to the gRNA strand. The `start` and `end` fields specify the
+corresponding coordinates on the transcript. 
 
 Let's look at the edited alleles:
 
@@ -167,15 +183,37 @@ Let's look at the edited alleles:
 head(alleles)
 ```
 
-The `DataFrame` is ordered by descending values in the `score` column. This `score` represents the likelihood of the edited allele to occur relative to all possible edited alleles, and is calculated using the editing weights stored in the `BE4max` object. The `seq` column represents the edited nucleotide sequences. As with the `wildtypeAllele` in the metadata, they are always reported from the 5' to 3' direction on the strand corresponding to the gRNA strand. The `variant` column describes the functional consequence of the editing event (silent, nonsense or missense mutation). If an edited allele results in multiple editing events, as can happen when multiple bases are edited, the most pronounced mutation (nonsense over missense, missense over silent) is reported. Finally, the `aa` column reports the resulting edited amino acid sequence, with each single letter code mapping to its corresponding nucleotide (`*` for termination).
+The `DataFrame` is ordered by descending values in the `score` column.
+This `score` represents the likelihood of the edited allele to occur 
+relative to all possible edited alleles, and is calculated using the 
+editing weights stored in the `BE4max` object. The `seq` column represents
+the edited nucleotide sequences. As with the `wildtypeAllele` in the metadata, 
+they are always reported from the 5' to 3' direction on the strand 
+corresponding to the gRNA strand. 
 
-Note that `addEditedAlleles` also appended several gRNA-level aggregate scores to the `GuideSet` object:
+The `variant` column describes the
+functional consequence of the editing event (silent, nonsense or
+missense mutation). If an edited allele results in multiple editing 
+events, as can happen when multiple bases are edited, the most 
+consequential mutation (nonsense over missense, missense over silent) 
+is reported. Finally, the `aa` column reports the resulting edited 
+amino acid sequence, with each single letter code mapping to its 
+corresponding nucleotide (`*` for termination).
+
+Note that `addEditedAlleles` also appended several gRNA-level aggregate 
+scores to the `GuideSet` object:
 
 ```{r}
 head(gs)
 ```
 
-The `score_missense`, `score_nonsense` and `score_silent` columns report aggregated scores for each mutation type. They are calculated by summing all scores of a given mutation type across the set of edited alleles for a given gRNA. The `maxVariant` column indicates the most probable mutation type for the given gRNA based on the maximum aggregated score, which is stored in `maxVariantScore`. In our example, the highest score for `spacer_57` is `score_nonsense`, and so `maxVariant` is set to `nonsense`.
+The `score_missense`, `score_nonsense` and `score_silent` columns report 
+aggregated scores for each mutation type. They are calculated by summing 
+all scores of a given mutation type across the set of edited alleles for 
+a given gRNA. The `maxVariant` column indicates the most probable mutation 
+type for the given gRNA based on the maximum aggregated score, which is 
+stored in `maxVariantScore`. In our example, the highest score for `spacer_57` 
+is `score_nonsense`, and so `maxVariant` is set to `nonsense`.
 
 
 
