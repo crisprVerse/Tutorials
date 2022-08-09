@@ -37,6 +37,7 @@ BiocManager::install("crisprDesign")
 See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar with the terminology used throughout
 this tutorial.
 
+
 # CRISPRi design
 
 For CRISPR activation (CRISPRa) and interference (CRISPRi) applications,
@@ -59,7 +60,7 @@ transcription starting site (TSS).
 design rules that are specific to CRISPRi applications. The `queryTss` function
 allows for specifying genomic coordinates of promoter regions. 
 The `addTssAnnotation` function annotates gRNAs for known TSSs, 
-and includes a column `dist_to_tss` that gives the distance in nucleotides between the TSS position and the PAM site of the gRNA. For CRISPRa, we recommend targeting the region 25-75bp region downstream of the TSS for optimal inhibition; see @sanson2018optimized for 
+and includes a column `dist_to_tss` that gives the distance in nucleotides between the TSS position and the PAM site of the gRNA. For CRISPRi, we recommend targeting the region 25-75bp region downstream of the TSS for optimal inhibition; see @sanson2018optimized for 
 more information. Finally, the function `addCrispraiScores` adds on-target 
 activity scores based on the work of [@crisprai]. 
 
@@ -107,7 +108,6 @@ target_region <- queryTss(tss_human,
 ```{r, collapse=TRUE}
 target_region
 ```
-
 
 We load the `crisprNuclease` object storing information about the
 SpCas9 nuclease:
@@ -163,11 +163,11 @@ tssAnnotation(gs)
 
 ## Adding spacer alignments with TSS annotation
 
-As with all CRISPR applications, off-targets is an important concern in 
+As with all CRISPR applications, potential off-targets effects are an important concern in 
 assessing gRNA quality. While this concern is somewhat moderated for CRISPRi, since the dead CRISPR nuclease does not make DSBs, we should be aware of off-targets 
 occuring in the promoter regions of other genes. This can be handled by 
 passing our `tssObject` to the `addSpacerAlignments` function. We will search 
-for up to 2 mismatches and increase the size of our `tss_window` to err 
+for up to 2 mismatches and increase the size of our `tss_window` (which defines the promoter region when searching for off-targets) to err 
 on the safe side. 
 
 Similar to the CRISPRko design tutorial, we need to specify a Bowtie index
@@ -177,12 +177,12 @@ Here we specify the index that was available to us when generating this
 tutorial:
 
 ```{r}
-index_path <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
-# index_path <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
+# index_path <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
+index_path <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
-(this needs to be changed by users). We are ready to add on- and off-target 
-alignments:
+(Users should change this to the filepath of their local bowtie index file).
+We are ready to add on- and off-target alignments:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
 gs <- addSpacerAlignments(gs,
@@ -233,22 +233,20 @@ We first prepare all needed inputs for `addCrispraiScores`.
 We start by specifying the location of the FASTA file on our local machine:
 
 ```{r}
-fastaPath <- "/Users/hoberecl/crisprIndices/genomes/hg38/hg38.fa.gz"
-# fastaPath <- "/Users/fortinj2/crisprIndices/genomes/hg38/hg38.fa"
+# fastaPath <- "/Users/hoberecl/crisprIndices/genomes/hg38/hg38.fa.gz"
+fastaPath <- "/Users/fortinj2/crisprIndices/genomes/hg38/hg38.fa"
 ```
 
 This corresponds to the path where the downloaded file from [here](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz) is
 stored. Next, we specify the location of the chromatin files:
 
-
-
 ```{r}
-mnasePath <- "/Users/hoberecl/crisprIndices/chromatin/hg38/crispria_mnase_human_K562_hg38.bigWig"
-dnasePath <- "/Users/hoberecl/crisprIndices/chromatin/hg38/crispria_dnase_human_K562_hg38.bigWig"
-fairePath <- "/Users/hoberecl/crisprIndices/chromatin/hg38/crispria_faire_human_K562_hg38.bigWig"
-# mnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_mnase_human_K562_hg38.bigWig"
-# dnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_dnase_human_K562_hg38.bigWig"
-# fairePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_faire_human_K562_hg38.bigWig"
+# mnasePath <- "/Users/hoberecl/crisprIndices/chromatin/hg38/crispria_mnase_human_K562_hg38.bigWig"
+# dnasePath <- "/Users/hoberecl/crisprIndices/chromatin/hg38/crispria_dnase_human_K562_hg38.bigWig"
+# fairePath <- "/Users/hoberecl/crisprIndices/chromatin/hg38/crispria_faire_human_K562_hg38.bigWig"
+mnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_mnase_human_K562_hg38.bigWig"
+dnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_dnase_human_K562_hg38.bigWig"
+fairePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_faire_human_K562_hg38.bigWig"
 chromatinFiles <- c(mnase=mnasePath,
                     dnase=dnasePath,
                     faire=fairePath)
