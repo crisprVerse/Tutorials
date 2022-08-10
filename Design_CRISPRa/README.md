@@ -16,7 +16,7 @@ Using crisprDesign to design gRNAs for CRISPRa
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 04 August, 2022
+Date: 10 August, 2022
 
 # Introduction
 
@@ -27,14 +27,23 @@ can be applied to any genomic target(s) and with any CRISPR nuclease.
 
 # Installation
 
-`crisprDesign` can be installed from Bioconductor using the following
-commands in an R session:
+First, we install the necessary packages for this tutorial from
+Bioconductor using the following commands:
 
 ``` r
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
+BiocManager::install("crisprBase")
 BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+```
+
+as well as the data package `crisprDesignData` from GitHub:
+
+``` r
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
 ```
 
 # Terminology
@@ -73,6 +82,15 @@ based on the work of (Horlbeck et al. et al. 2016).
 
 ## Creating the GuideSet
 
+We first start by loading the required packages:
+
+``` r
+library(crisprBase)
+library(crisprDesign)
+library(crisprDesignData)
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
 To demonstrate CRISPRa design, we will design gRNAs to activate the
 human KRAS gene using the SpCas9 nuclease. To accomplish this, we want
 our gRNAs to target the region upstream of the KRAS TSS; let’s consider
@@ -84,17 +102,9 @@ similar TSS annotation objects, see the [Building a gene annotation
 object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
 tutorial.
 
-The `crisprDesignData` can be installed using the following commands:
-
-``` r
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
-
 We load the TSS coordinates stored in the `tss_human` object
 
 ``` r
-library(crisprDesignData)
 data("tss_human", package="crisprDesignData")
 ```
 
@@ -126,18 +136,16 @@ target_region
 ```
 
 We load the `crisprNuclease` object storing information about the SpCas9
-nuclease:
+nuclease from the `crisprBase` package:
 
 ``` r
-library(crisprBase)
-data(SpCas9)
+data(SpCas9, package="crisprBase")
 ```
 
 We then find all candidate protospacer sequences in our target region
 with `findSpacers`:
 
 ``` r
-library(BSgenome.Hsapiens.UCSC.hg38)
 gs <- findSpacers(target_region,
                   crisprNuclease=SpCas9,
                   bsgenome=BSgenome.Hsapiens.UCSC.hg38)
@@ -265,7 +273,6 @@ Here we specify the index that was available to us when generating this
 tutorial:
 
 ``` r
-#index_path <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
 index_path <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
@@ -324,19 +331,19 @@ gs
 ##   spacer_144         0         0         1         0         0
 ##   spacer_145         0         0         1         0         0
 ##   spacer_146         0         0         1         0         0
-##                                                          alignments
-##                                                       <GRangesList>
-##     spacer_1 chr12:25250927:-,chr18:21741459:-,chr7:131738185:-,...
-##     spacer_2 chr9:130886259:+,chr12:25251105:+,chr9:111897205:+,...
-##     spacer_3  chr3:9072318:-,chr12:117052836:-,chr12:31324170:-,...
-##     spacer_4   chr5:136560488:+,chr1:1627633:-,chr9:131739852:+,...
-##     spacer_5  chr3:101742769:+,chr16:22191335:-,chr1:19485593:-,...
-##          ...                                                    ...
-##   spacer_142 chr19:7990814:+,chr12:125795462:-,chr15:58933192:-,...
-##   spacer_143   chr14:99531164:+,chr9:81862478:-,chr1:22563612:-,...
-##   spacer_144   chr19:18597158:-,chr4:5826778:-,chr13:80341047:+,...
-##   spacer_145 chr14:105483246:-,chr12:118087564:+,chr10:135759:+,...
-##   spacer_146    chr19:8003020:+,chr16:88227567:-,chr11:556165:+,...
+##                                     alignments
+##                                  <GRangesList>
+##     spacer_1                  chr12:25250927:-
+##     spacer_2                  chr12:25250944:-
+##     spacer_3                  chr12:25250953:-
+##     spacer_4                  chr12:25250961:+
+##     spacer_5                  chr12:25250962:+
+##          ...                               ...
+##   spacer_142 chr12:25251419:-,chr16:88925550:+
+##   spacer_143                  chr12:25251420:-
+##   spacer_144                  chr12:25251423:-
+##   spacer_145                  chr12:25251429:+
+##   spacer_146                  chr12:25251430:+
 ##   -------
 ##   seqinfo: 640 sequences (1 circular) from hg38 genome
 ##   crisprNuclease: SpCas9
@@ -380,7 +387,6 @@ We first prepare all needed inputs for `addCrispraiScores`. We start by
 specifying the location of the FASTA file on our local machine:
 
 ``` r
-#fastaPath <- "/Users/hoberecl/crispraiScores/hg38.fa.gz"
 fastaPath <- "/Users/fortinj2/crisprIndices/genomes/hg38/hg38.fa"
 ```
 
@@ -389,9 +395,6 @@ This corresponds to the path where the downloaded file from
 is stored. Next, we specify the location of the chromatin files:
 
 ``` r
-#mnasePath <- "/Users/hoberecl/crispraiScores/crispria_mnase_human_K562_hg38.bigWig"
-#dnasePath <- "/Users/hoberecl/crispraiScores/crispria_dnase_human_K562_hg38.bigWig"
-#fairePath <- "/Users/hoberecl/crispraiScores/crispria_faire_human_K562_hg38.bigWig"
 mnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_mnase_human_K562_hg38.bigWig"
 dnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_dnase_human_K562_hg38.bigWig"
 fairePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_faire_human_K562_hg38.bigWig"
@@ -400,7 +403,7 @@ chromatinFiles <- c(mnase=mnasePath,
                     faire=fairePath)
 ```
 
-This should correspond to the files that were donwloaded from
+This should correspond to the files that were downloaded from
 [here](https://zenodo.org/record/6716721#.YrzCfS-cY4d).
 
 We are now ready to add the scores:
@@ -459,32 +462,19 @@ results
 ##   spacer_144         0         0         1         0         0
 ##   spacer_145         0         0         1         0         0
 ##   spacer_146         0         0         1         0         0
-##                                                          alignments
-##                                                       <GRangesList>
-##     spacer_1 chr12:25250927:-,chr18:21741459:-,chr7:131738185:-,...
-##     spacer_2 chr9:130886259:+,chr12:25251105:+,chr9:111897205:+,...
-##     spacer_3  chr3:9072318:-,chr12:117052836:-,chr12:31324170:-,...
-##     spacer_4   chr5:136560488:+,chr1:1627633:-,chr9:131739852:+,...
-##     spacer_5  chr3:101742769:+,chr16:22191335:-,chr1:19485593:-,...
-##          ...                                                    ...
-##   spacer_142 chr19:7990814:+,chr12:125795462:-,chr15:58933192:-,...
-##   spacer_143   chr14:99531164:+,chr9:81862478:-,chr1:22563612:-,...
-##   spacer_144   chr19:18597158:-,chr4:5826778:-,chr13:80341047:+,...
-##   spacer_145 chr14:105483246:-,chr12:118087564:+,chr10:135759:+,...
-##   spacer_146    chr19:8003020:+,chr16:88227567:-,chr11:556165:+,...
-##              score_crispra
-##                  <numeric>
-##     spacer_1      0.439319
-##     spacer_2      0.392932
-##     spacer_3      0.477453
-##     spacer_4      0.437693
-##     spacer_5      0.437368
-##          ...           ...
-##   spacer_142      0.339499
-##   spacer_143      0.377727
-##   spacer_144      0.387729
-##   spacer_145      0.362817
-##   spacer_146      0.363131
+##                                     alignments score_crispra
+##                                  <GRangesList>     <numeric>
+##     spacer_1                  chr12:25250927:-      0.439319
+##     spacer_2                  chr12:25250944:-      0.392932
+##     spacer_3                  chr12:25250953:-      0.477453
+##     spacer_4                  chr12:25250961:+      0.437693
+##     spacer_5                  chr12:25250962:+      0.437368
+##          ...                               ...           ...
+##   spacer_142 chr12:25251419:-,chr16:88925550:+      0.339499
+##   spacer_143                  chr12:25251420:-      0.377727
+##   spacer_144                  chr12:25251423:-      0.387729
+##   spacer_145                  chr12:25251429:+      0.362817
+##   spacer_146                  chr12:25251430:+      0.363131
 ##   -------
 ##   seqinfo: 640 sequences (1 circular) from hg38 genome
 ##   crisprNuclease: SpCas9
@@ -519,16 +509,16 @@ sessionInfo()
     ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.3.5              
     ##  [3] AnnotationHub_3.3.9               BiocFileCache_2.3.4              
     ##  [5] dbplyr_2.1.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
-    ##  [7] BSgenome_1.63.5                   rtracklayer_1.55.4               
-    ##  [9] Biostrings_2.63.2                 XVector_0.35.0                   
-    ## [11] GenomicRanges_1.47.6              GenomeInfoDb_1.31.6              
-    ## [13] IRanges_2.29.1                    S4Vectors_0.33.11                
-    ## [15] BiocGenerics_0.41.2               crisprDesign_0.99.109            
-    ## [17] crisprBase_1.1.2                  crisprDesignData_0.99.11         
+    ##  [7] BSgenome_1.64.0                   rtracklayer_1.55.4               
+    ##  [9] Biostrings_2.64.0                 XVector_0.35.0                   
+    ## [11] GenomicRanges_1.48.0              GenomeInfoDb_1.32.2              
+    ## [13] IRanges_2.30.0                    S4Vectors_0.33.11                
+    ## [15] BiocGenerics_0.42.0               crisprDesignData_0.99.13         
+    ## [17] crisprDesign_0.99.115             crisprBase_1.1.3                 
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] rjson_0.2.21                  ellipsis_0.3.2               
-    ##  [3] Rbowtie_1.35.0                rstudioapi_0.13              
+    ##  [3] Rbowtie_1.36.0                rstudioapi_0.13              
     ##  [5] bit64_4.0.5                   interactiveDisplayBase_1.33.0
     ##  [7] AnnotationDbi_1.57.1          fansi_1.0.2                  
     ##  [9] xml2_1.3.3                    cachem_1.0.6                 
@@ -567,8 +557,8 @@ sessionInfo()
     ## [75] bit_4.0.4                     tidyselect_1.1.2             
     ## [77] magrittr_2.0.2                R6_2.5.1                     
     ## [79] generics_0.1.2                DelayedArray_0.21.2          
-    ## [81] DBI_1.1.2                     withr_2.5.0                  
-    ## [83] pillar_1.7.0                  KEGGREST_1.35.0              
+    ## [81] DBI_1.1.2                     pillar_1.7.0                 
+    ## [83] withr_2.5.0                   KEGGREST_1.35.0              
     ## [85] RCurl_1.98-1.6                tibble_3.1.6                 
     ## [87] dir.expiry_1.3.0              crayon_1.5.0                 
     ## [89] utf8_1.2.2                    tzdb_0.2.0                   
