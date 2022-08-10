@@ -1,31 +1,26 @@
 Using crisprDesign to design gRNAs that map across species
 ================
 
--   <a href="#introduction" id="toc-introduction">Introduction</a>
--   <a href="#installation" id="toc-installation">Installation</a>
--   <a href="#terminology" id="toc-terminology">Terminology</a>
--   <a href="#mapping-grnas-across-species"
-    id="toc-mapping-grnas-across-species">Mapping gRNAs across species</a>
-    -   <a href="#loading-packages" id="toc-loading-packages">Loading
-        packages</a>
-    -   <a href="#creating-the-guideset" id="toc-creating-the-guideset">Creating
-        the GuideSet</a>
-    -   <a href="#mapping-grnas-across-species-via-intersect"
-        id="toc-mapping-grnas-across-species-via-intersect">Mapping gRNAs across
-        species via <code>intersect</code></a>
-    -   <a href="#mapping-grnas-across-species-via-addspaceralignments"
-        id="toc-mapping-grnas-across-species-via-addspaceralignments">Mapping
-        gRNAs across species via <code>addSpacerAlignments</code></a>
--   <a href="#session-info" id="toc-session-info">Session Info</a>
+-   [Introduction](#introduction)
+-   [Installation](#installation)
+-   [Terminology](#terminology)
+-   [Mapping gRNAs across species](#mapping-grnas-across-species)
+    -   [Loading packages](#loading-packages)
+    -   [Creating the GuideSet](#creating-the-guideset)
+    -   [Mapping gRNAs across species via
+        `intersect`](#mapping-grnas-across-species-via-intersect)
+    -   [Mapping gRNAs across species via
+        `addSpacerAlignments`](#mapping-grnas-across-species-via-addspaceralignments)
+-   [Session Info](#session-info)
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 09 August, 2022
+Date: 10 August, 2022
 
 # Introduction
 
 This tutorial describes how to design guide RNAs (gRNAs) that target
-homologous genes across multiple species using functions in the
+homologous genes across multiple species using functions from the
 `crisprDesign` package. This strategy can be applied to any two (or
 more) species for which the genome sequence and gene model annotation is
 available.
@@ -73,38 +68,47 @@ library(BSgenome.Mmusculus.UCSC.mm10)
 
 ## Creating the GuideSet
 
-In this tutorial we will design gRNAs using the SpCas9 nuclease that
-target both the human KRAS gene and the homologous mouse Kras gene.
-There are multiple ways to go about this, which we describe in the
-following sections. Each strategy, however, begins by constructing a
-`GuideSet` targeting a “host” gene.
+In this tutorial, we will design gRNAs using the SpCas9 nuclease that
+target both the human KRAS gene and its mouse ortholog Kras. There are
+multiple ways to go about this, which we describe in the following
+sections.
 
-We will take the human KRAS gene as our “host” gene and create a
-`GuideSet` targeting the CDS of that gene. We first load the SpCas9
-`CrisprNuclease` object from the `crisprBase` package and data
-containing gene regions for the human genome from the `crisprDesignData`
-package, `txdb_human` (we will also load a similar object for the mouse
-genome, `txdb_mouse`). For more information on `txdb_human` and
-`txdb_mouse` and how to create similar gene annotation objects, see the
-[Building a gene annotation object
-tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
-tutorial.
+We first create a `GuideSet` object containing gRNAs targeting the
+coding sequence (CDS) of human KRAS. To do so, we start by loading the
+SpCas9 `CrisprNuclease` object from the `crisprBase` package:
 
 ``` r
 data(SpCas9, package="crisprBase")
+```
+
+and then load data containing gene regions for the human genome from the
+`crisprDesignData` package, `txdb_human` (we will also load a similar
+object for the mouse genome, `txdb_mouse`):
+
+``` r
 data(txdb_human, package="crisprDesignData")
 data(txdb_mouse, package="crisprDesignData")
 ```
 
+For more information on `txdb_human` and `txdb_mouse` and how to create
+similar gene annotation objects, see the [Building a gene annotation
+object
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
+tutorial.
+
 Next, we find the coordinates for the CDS of KRAS using the
-`queryTxObject` function then build our `GuideSet` with the
-`findSpacers` function.
+`queryTxObject` function:
 
 ``` r
 kras_human <- queryTxObject(txdb_human,
                             featureType="cds",
                             queryColumn="gene_symbol",
                             queryValue="KRAS")
+```
+
+and build our `GuideSet` object with the `findSpacers` function:
+
+``` r
 gs_human <- findSpacers(kras_human,
                         crisprNuclease=SpCas9,
                         bsgenome=BSgenome.Hsapiens.UCSC.hg38) 
@@ -112,8 +116,8 @@ gs_human <- findSpacers(kras_human,
 
 ## Mapping gRNAs across species via `intersect`
 
-For this strategy we first create a similar `GuideSet` targeting the
-mouse homolog Kras.
+As a first strategy to find gRNAs that target both species, we first
+create a similar `GuideSet` targeting the mouse ortholog Kras:
 
 ``` r
 kras_mouse <- queryTxObject(txdb_mouse,
@@ -125,13 +129,28 @@ gs_mouse <- findSpacers(kras_mouse,
                         bsgenome=BSgenome.Mmusculus.UCSC.mm10) 
 ```
 
-Then, we find the common spacers between the two `GuideSet`s using
-`intersect` and filter each for this common spacer set.
+Then, we find the common spacers between the two `GuideSet` objects
+using `intersect`
 
 ``` r
 common_spacers <- intersect(spacers(gs_human),
                             spacers(gs_mouse))
+length(common_spacers)
+```
+
+    ## [1] 18
+
+There are 18 spacers that target KRAS in both species. We can filter
+each `GuideSet` object for this common spacer set:
+
+``` r
 results_human <- gs_human[spacers(gs_human) %in% common_spacers]
+results_mouse <- gs_mouse[spacers(gs_mouse) %in% common_spacers]
+```
+
+Let’s look at the results:
+
+``` r
 results_human
 ```
 
@@ -167,7 +186,6 @@ results_human
     ##   crisprNuclease: SpCas9
 
 ``` r
-results_mouse <- gs_mouse[spacers(gs_mouse) %in% common_spacers]
 results_mouse
 ```
 
@@ -207,10 +225,10 @@ have perfect sequence matching, which, while perhaps acceptable for
 targets having many gRNA choices, may be too restrictive for those
 applications that have fewer choices and may need tolerate mismatches in
 the target genes. Also, and more notably, we now have multiple
-`GuideSets` to maintain in the process of selecting candidate gRNAs (see
-[CRISPRko design with
+`GuideSet` objects to maintain in the process of selecting candidate
+gRNAs (see [CRISPRko design with
 Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9))–essentially
-twice the work!
+twice the work.
 
 ## Mapping gRNAs across species via `addSpacerAlignments`
 
@@ -223,8 +241,7 @@ specify a bowtie index for the mouse genome:
 
 ``` r
 # Path of the mm10 bowtie index on my personal laptop:
-bowtie_index_mouse <- "/Users/hoberecl/crisprIndices/bowtie/mm10/mm10"
-# bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/mm10/mm10"
+bowtie_index_mouse <- "/Users/fortinj2/crisprIndices/bowtie/mm10/mm10"
 ```
 
 For instructions on how to build a Bowtie index from a given reference
@@ -369,8 +386,8 @@ alignments(results_human, columnName="alignments_mouse")
     ##   -------
     ##   seqinfo: 22 sequences (1 circular) from mm10 genome
 
-With these data we can filter our gRNAs for those that target both
-homologs (and we have off-target annotation for the mouse genome!).
+With these data, we can filter our gRNAs for those that target both
+orthologs (and we have off-target annotation for the mouse genome).
 
 ``` r
 aln <- alignments(results_human, columnName="alignments_mouse")
@@ -384,14 +401,13 @@ Adding alignments for the human genome (or any other genome) will
 overwrite the summary columns in `results_human` (`n0`, `n0_c`, `n1`,
 and `n1_c`) unless we set `addSummary=FALSE` in `addSpacerAlignments`.
 We should also take care to ensure the column name for our alignments
-annotation remains unique so it will not be overwritten. Here we add
+annotation remains unique so it will not be overwritten. Here, we add
 alignment annotation for the human genome, but overwrite the mouse
 alignment summary columns (see the warning message below).
 
 ``` r
 # Path of the hg38 bowtie index on my personal laptop:
-bowtie_index_human <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
-# bowtie_index_human <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
+bowtie_index_human <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 
 results_human <- addSpacerAlignments(results_human,
                                      aligner="bowtie",
@@ -493,63 +509,62 @@ sessionInfo()
     ## 
     ## other attached packages:
     ##  [1] BSgenome.Mmusculus.UCSC.mm10_1.4.3 BSgenome.Hsapiens.UCSC.hg38_1.4.4 
-    ##  [3] BSgenome_1.64.0                    rtracklayer_1.56.1                
-    ##  [5] Biostrings_2.64.0                  XVector_0.36.0                    
+    ##  [3] BSgenome_1.64.0                    rtracklayer_1.55.4                
+    ##  [5] Biostrings_2.64.0                  XVector_0.35.0                    
     ##  [7] GenomicRanges_1.48.0               GenomeInfoDb_1.32.2               
-    ##  [9] IRanges_2.30.0                     S4Vectors_0.34.0                  
+    ##  [9] IRanges_2.30.0                     S4Vectors_0.33.11                 
     ## [11] BiocGenerics_0.42.0                crisprDesignData_0.99.13          
-    ## [13] crisprDesign_0.99.113              crisprBase_1.1.2                  
+    ## [13] crisprDesign_0.99.117              crisprBase_1.1.3                  
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] rjson_0.2.21                  ellipsis_0.3.2               
     ##   [3] Rbowtie_1.36.0                rstudioapi_0.13              
-    ##   [5] bit64_4.0.5                   interactiveDisplayBase_1.34.0
-    ##   [7] AnnotationDbi_1.58.0          fansi_1.0.3                  
-    ##   [9] xml2_1.3.3                    codetools_0.2-18             
-    ##  [11] cachem_1.0.6                  knitr_1.39                   
-    ##  [13] jsonlite_1.8.0                Rsamtools_2.12.0             
-    ##  [15] dbplyr_2.2.1                  png_0.1-7                    
-    ##  [17] shiny_1.7.2                   BiocManager_1.30.18          
-    ##  [19] readr_2.1.2                   compiler_4.2.0               
-    ##  [21] httr_1.4.3                    basilisk_1.9.2               
-    ##  [23] assertthat_0.2.1              Matrix_1.4-1                 
-    ##  [25] fastmap_1.1.0                 cli_3.3.0                    
-    ##  [27] later_1.3.0                   htmltools_0.5.3              
-    ##  [29] prettyunits_1.1.1             tools_4.2.0                  
-    ##  [31] glue_1.6.2                    GenomeInfoDbData_1.2.8       
-    ##  [33] crisprBowtie_1.0.0            dplyr_1.0.9                  
-    ##  [35] rappdirs_0.3.3                Rcpp_1.0.9                   
-    ##  [37] Biobase_2.56.0                vctrs_0.4.1                  
-    ##  [39] ExperimentHub_2.4.0           crisprBwa_1.0.0              
-    ##  [41] crisprScore_1.1.14            xfun_0.31                    
-    ##  [43] stringr_1.4.0                 mime_0.12                    
-    ##  [45] lifecycle_1.0.1               restfulr_0.0.15              
-    ##  [47] XML_3.99-0.10                 AnnotationHub_3.4.0          
-    ##  [49] zlibbioc_1.42.0               basilisk.utils_1.9.1         
-    ##  [51] vroom_1.5.7                   VariantAnnotation_1.42.1     
-    ##  [53] hms_1.1.1                     promises_1.2.0.1             
-    ##  [55] MatrixGenerics_1.8.1          parallel_4.2.0               
-    ##  [57] SummarizedExperiment_1.26.1   yaml_2.3.5                   
-    ##  [59] curl_4.3.2                    memoise_2.0.1                
-    ##  [61] reticulate_1.25               biomaRt_2.52.0               
-    ##  [63] stringi_1.7.8                 RSQLite_2.2.15               
-    ##  [65] BiocVersion_3.15.2            BiocIO_1.6.0                 
-    ##  [67] randomForest_4.7-1.1          crisprScoreData_1.1.3        
-    ##  [69] GenomicFeatures_1.48.3        filelock_1.0.2               
-    ##  [71] BiocParallel_1.30.3           rlang_1.0.4                  
-    ##  [73] pkgconfig_2.0.3               matrixStats_0.62.0           
-    ##  [75] bitops_1.0-7                  evaluate_0.15                
-    ##  [77] lattice_0.20-45               purrr_0.3.4                  
-    ##  [79] GenomicAlignments_1.32.1      bit_4.0.4                    
-    ##  [81] tidyselect_1.1.2              magrittr_2.0.3               
-    ##  [83] R6_2.5.1                      generics_0.1.3               
-    ##  [85] DelayedArray_0.22.0           DBI_1.1.3                    
-    ##  [87] pillar_1.8.0                  KEGGREST_1.36.3              
-    ##  [89] RCurl_1.98-1.8                tibble_3.1.8                 
-    ##  [91] dir.expiry_1.4.0              crayon_1.5.1                 
-    ##  [93] utf8_1.2.2                    BiocFileCache_2.4.0          
-    ##  [95] tzdb_0.3.0                    rmarkdown_2.14               
-    ##  [97] progress_1.2.2                grid_4.2.0                   
-    ##  [99] blob_1.2.3                    digest_0.6.29                
-    ## [101] xtable_1.8-4                  httpuv_1.6.5                 
-    ## [103] Rbwa_1.0.0
+    ##   [5] bit64_4.0.5                   interactiveDisplayBase_1.33.0
+    ##   [7] AnnotationDbi_1.57.1          fansi_1.0.2                  
+    ##   [9] xml2_1.3.3                    cachem_1.0.6                 
+    ##  [11] knitr_1.37                    jsonlite_1.8.0               
+    ##  [13] Rsamtools_2.11.0              dbplyr_2.1.1                 
+    ##  [15] png_0.1-7                     shiny_1.7.1                  
+    ##  [17] BiocManager_1.30.16           readr_2.1.2                  
+    ##  [19] compiler_4.2.0                httr_1.4.2                   
+    ##  [21] basilisk_1.9.2                assertthat_0.2.1             
+    ##  [23] Matrix_1.4-0                  fastmap_1.1.0                
+    ##  [25] cli_3.3.0                     later_1.3.0                  
+    ##  [27] htmltools_0.5.2               prettyunits_1.1.1            
+    ##  [29] tools_4.2.0                   glue_1.6.2                   
+    ##  [31] GenomeInfoDbData_1.2.7        crisprBowtie_1.1.1           
+    ##  [33] dplyr_1.0.8                   rappdirs_0.3.3               
+    ##  [35] Rcpp_1.0.8.3                  Biobase_2.55.0               
+    ##  [37] vctrs_0.3.8                   ExperimentHub_2.3.5          
+    ##  [39] crisprBwa_1.1.2               crisprScore_1.1.13           
+    ##  [41] xfun_0.30                     stringr_1.4.0                
+    ##  [43] mime_0.12                     lifecycle_1.0.1              
+    ##  [45] restfulr_0.0.13               XML_3.99-0.9                 
+    ##  [47] AnnotationHub_3.3.9           zlibbioc_1.41.0              
+    ##  [49] basilisk.utils_1.9.1          vroom_1.5.7                  
+    ##  [51] VariantAnnotation_1.41.3      hms_1.1.1                    
+    ##  [53] promises_1.2.0.1              MatrixGenerics_1.7.0         
+    ##  [55] parallel_4.2.0                SummarizedExperiment_1.25.3  
+    ##  [57] yaml_2.3.5                    curl_4.3.2                   
+    ##  [59] memoise_2.0.1                 reticulate_1.25              
+    ##  [61] biomaRt_2.51.3                stringi_1.7.6                
+    ##  [63] RSQLite_2.2.12                BiocVersion_3.15.0           
+    ##  [65] BiocIO_1.5.0                  randomForest_4.7-1           
+    ##  [67] crisprScoreData_1.1.3         GenomicFeatures_1.47.13      
+    ##  [69] filelock_1.0.2                BiocParallel_1.29.18         
+    ##  [71] rlang_1.0.4                   pkgconfig_2.0.3              
+    ##  [73] matrixStats_0.61.0            bitops_1.0-7                 
+    ##  [75] evaluate_0.15                 lattice_0.20-45              
+    ##  [77] purrr_0.3.4                   GenomicAlignments_1.31.2     
+    ##  [79] bit_4.0.4                     tidyselect_1.1.2             
+    ##  [81] magrittr_2.0.2                R6_2.5.1                     
+    ##  [83] generics_0.1.2                DelayedArray_0.21.2          
+    ##  [85] DBI_1.1.2                     pillar_1.7.0                 
+    ##  [87] KEGGREST_1.35.0               RCurl_1.98-1.6               
+    ##  [89] tibble_3.1.6                  dir.expiry_1.3.0             
+    ##  [91] crayon_1.5.0                  utf8_1.2.2                   
+    ##  [93] BiocFileCache_2.3.4           tzdb_0.2.0                   
+    ##  [95] rmarkdown_2.13                progress_1.2.2               
+    ##  [97] grid_4.2.0                    blob_1.2.2                   
+    ##  [99] digest_0.6.29                 xtable_1.8-4                 
+    ## [101] httpuv_1.6.5                  Rbwa_1.1.0
