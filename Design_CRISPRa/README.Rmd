@@ -22,13 +22,23 @@ This tutorial will demonstrate how to use `crisprDesign` to design gRNAs for CRI
 
 # Installation
 
-`crisprDesign` can be installed from Bioconductor using the following commands in an R session:
+First, we install the necessary packages for this tutorial from Bioconductor
+using the following commands:
 
 ```{r, eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
+BiocManager::install("crisprBase")
 BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+```
+
+as well as the data package `crisprDesignData` from GitHub:
+
+```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
 ```
 
 
@@ -65,6 +75,16 @@ activity scores based on the work of [@crisprai].
 
 ## Creating the GuideSet
 
+We first start by loading the required packages:
+
+```{r, message=FALSE, warning=FALSE, results='hide' }
+library(crisprBase)
+library(crisprDesign)
+library(crisprDesignData)
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+
 To demonstrate CRISPRa design, we will design gRNAs to activate the human KRAS 
 gene using the SpCas9 nuclease. To accomplish this, we want our gRNAs to
 target the region upstream of the KRAS TSS; let's consider the window
@@ -75,18 +95,12 @@ on `tss_human` and how to create similar TSS annotation objects,
 see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) 
 tutorial.
 
-The `crisprDesignData` can be installed using the following commands:
 
-```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
 
 
 We load the TSS coordinates stored in the `tss_human` object
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
-library(crisprDesignData)
 data("tss_human", package="crisprDesignData")
 ```
 
@@ -105,20 +119,17 @@ target_region <- queryTss(tss_human,
 target_region
 ```
 
-
 We load the `crisprNuclease` object storing information about the
-SpCas9 nuclease:
+SpCas9 nuclease from the `crisprBase` package:
 
 ```{r}
-library(crisprBase)
-data(SpCas9)
+data(SpCas9, package="crisprBase")
 ```
 
 We then find all candidate protospacer sequences in our target region 
 with `findSpacers`:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
-library(BSgenome.Hsapiens.UCSC.hg38)
 gs <- findSpacers(target_region,
                   crisprNuclease=SpCas9,
                   bsgenome=BSgenome.Hsapiens.UCSC.hg38)
@@ -174,7 +185,6 @@ Here we specify the index that was available to us when generating this
 tutorial:
 
 ```{r}
-#index_path <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
 index_path <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
@@ -230,7 +240,6 @@ We first prepare all needed inputs for `addCrispraiScores`.
 We start by specifying the location of the FASTA file on our local machine:
 
 ```{r}
-#fastaPath <- "/Users/hoberecl/crispraiScores/hg38.fa.gz"
 fastaPath <- "/Users/fortinj2/crisprIndices/genomes/hg38/hg38.fa"
 ```
 
@@ -240,9 +249,6 @@ stored. Next, we specify the location of the chromatin files:
 
 
 ```{r}
-#mnasePath <- "/Users/hoberecl/crispraiScores/crispria_mnase_human_K562_hg38.bigWig"
-#dnasePath <- "/Users/hoberecl/crispraiScores/crispria_dnase_human_K562_hg38.bigWig"
-#fairePath <- "/Users/hoberecl/crispraiScores/crispria_faire_human_K562_hg38.bigWig"
 mnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_mnase_human_K562_hg38.bigWig"
 dnasePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_dnase_human_K562_hg38.bigWig"
 fairePath <- "/Users/fortinj2/crisprIndices/chromatin/hg38/crispria_faire_human_K562_hg38.bigWig"
@@ -251,7 +257,7 @@ chromatinFiles <- c(mnase=mnasePath,
                     faire=fairePath)
 ```
 
-This should correspond to the files that were donwloaded from 
+This should correspond to the files that were downloaded from 
 [here](https://zenodo.org/record/6716721#.YrzCfS-cY4d).
 
 We are now ready to add the scores:
