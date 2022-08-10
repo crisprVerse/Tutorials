@@ -29,7 +29,7 @@
 
 ### Miscellaneous
 
-14. Mapping gRNAs across species
+14. [Mapping gRNAs across species](https://github.com/crisprVerse/Tutorials/tree/master/Design_Cross_Reactivity)
 15. Working with minor and major alleles
 16. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
 17. Design for optical pooled screening (OPS)
