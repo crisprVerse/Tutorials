@@ -20,37 +20,64 @@ In this tutorial, we illustrate the main functionalities of `crisprDesign`, the 
 
 # Some terminology before we get started
 
-Before we start designing gRNAs, we first introduce some terminology that will be useful throughout this and subsequent tutorials. 
-CRISPR nucleases require two binding components for cleavage. First, the nuclease needs to recognize a constant nucleotide motif in the target DNA called the protospacer adjacent motif (PAM) sequence. Second, the gRNA, which guides the nuclease to the target sequence, needs to bind to a complementary sequence adjacent to the PAM sequence, called the **protospacer** sequence. The latter can be thought of as a variable binding motif that can be specified by designing corresponding gRNA sequences.
+Before we start designing gRNAs, we first introduce some terminology 
+that will be useful throughout this and subsequent tutorials. 
+CRISPR nucleases require two binding components for cleavage. First, 
+the nuclease needs to recognize a constant nucleotide motif in the 
+target DNA called the protospacer adjacent motif (PAM) sequence. 
+Second, the gRNA, which guides the nuclease to the target sequence,
+needs to bind to a complementary sequence adjacent to the PAM sequence,
+called the **protospacer** sequence. The latter can be thought of 
+as a variable binding motif that can be specified by designing 
+corresponding gRNA sequences.
 
-The **spacer** sequence is used in the gRNA construct to guide the CRISPR nuclease to the target **protospacer** sequence in the host genome. While a gRNA spacer sequence may not always uniquely target the host genome (i.e. it may map to multiple protospacers in the host genome), we can, for a given reference genome, uniquely identify a protospacer  sequence with a combination of 3 attributes: 
+The **spacer** sequence is used in the gRNA construct to guide the 
+CRISPR nuclease to the target **protospacer** sequence in the host 
+genome. While a gRNA spacer sequence may not always uniquely target
+the host genome (i.e. it may map to multiple protospacers in the host
+genome), we can, for a given reference genome, uniquely identify
+a protospacer  sequence with a combination of 3 attributes: 
 
 - `chr`: chromosome name 
 - `strand`: forward (+) or reverse (-)
 - `pam_site`: genomic coordinate of the first nucleotide of the nuclease-specific PAM sequence; for SpCas9 this is the "N" in the NGG PAM sequence
 
-For CRISPRko applications, we use an additional genomic coordinate, called `cut_site`, to represent where the double-stranded break (DSB) occurs. For AsCas12a, the 5nt 5' overhang dsDNA break will cause a cut 19nt after the PAM sequence on the targeted strand, and 23nt after the PAM sequence on the opposite strand (PAM-distal editing).
+For CRISPRko applications, we use an additional genomic coordinate, 
+called `cut_site`, to represent where the double-stranded break (DSB) 
+occurs. For AsCas12a, the 5nt 5' overhang dsDNA break will cause a cut 19nt after the PAM sequence on the targeted strand, and 23nt after the PAM sequence on the opposite strand (PAM-distal editing).
 
 
 # Installation
 
-`crisprDesign` can be installed from Bioconductor using the following
-commands in an R session:
+First, we install the necessary packages for this tutorial from Bioconductor
+using the following commands:
 
 ```{r, eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
+BiocManager::install("crisprBase")
 BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+```
+
+as well as the data package `crisprDesignData` from GitHub:
+
+```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
 ```
 
 
 # End-to-end gRNA design workflow
 
-We first start by loading the package as usual:
+We first start by loading the required packages:
 
 ```{r, message=FALSE, warning=FALSE, results='hide' }
+library(crisprBase)
 library(crisprDesign)
+library(crisprDesignData)
+library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
 
@@ -59,7 +86,6 @@ library(crisprDesign)
 We load the `AsCas12a` nuclease object from the `crisprBase` package (see the `crisprBase` [vignette](https://github.com/Jfortin1/crisprBase) for instructions on how to create or load alternative nucleases):
 
 ```{r}
-library(crisprBase)
 data(AsCas12a, package="crisprBase")
 AsCas12a
 ```
@@ -75,13 +101,20 @@ prototypeSequence(AsCas12a)
 
 ## Specification of the target DNA sequence (KRAS CDS)
 
-Since we aim to design gRNAs that knock out the human KRAS gene, we first need to retrieve the DNA sequence of the coding region (CDS) of KRAS. We show in this [tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) how to build convenient gene model objects that allows for quick access to gene-specific sequences. Here, we obtain from `crisprDesignData` a `GRangesList` object that defines the genomic coordinates (in hg38 coordinates) of coding genes in the human genome: 
+Since we aim to design gRNAs that knock out the human KRAS gene, we first 
+need to retrieve the DNA sequence of the coding region (CDS) of KRAS. 
+We show in this [tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) how to build convenient gene model objects 
+that allows for quick access to gene-specific sequences. Here, we obtain 
+from `crisprDesignData` a `GRangesList` object that defines the 
+genomic coordinates (in hg38 coordinates) of coding genes in the human genome: 
 
 ```{r}
 data(txdb_human, package="crisprDesignData")
 ```
 
-The `queryTxObject` function allows us to query this object by feature for specific gene(s). Here, we obtain a `GRanges` object containing the CDS coordinates of KRAS:
+The `queryTxObject` function allows us to query this object by feature
+for specific gene(s). Here, we obtain a `GRanges` object containing the
+CDS coordinates of KRAS:
 
 ```{r echo=TRUE, results='hide', warning=FALSE, message=FALSE}
 gr <- queryTxObject(txObject=txdb_human,
@@ -90,13 +123,15 @@ gr <- queryTxObject(txObject=txdb_human,
                     queryValue="KRAS")
 ```
 
-To simplify our design, we will only consider coding sequences that constitute the primary transcript of the gene (transcript ID: ENST00000311936).
+To simplify our design, we will only consider coding sequences that 
+constitute the primary transcript of the gene (transcript ID: ENST00000311936).
 
 ```{r}
 gr <- gr[gr$tx_id == "ENST00000311936"]
 ```
 
-Optionally, we could also adjust the arguments in our call to `queryTxObject` to retrieve those transcript-specific coordinates:
+Optionally, we could also adjust the arguments in our call to `queryTxObject`
+to retrieve those transcript-specific coordinates:
 
 ```{r, eval=FALSE}
 gr <- queryTxObject(txObject=txObject,
@@ -108,10 +143,13 @@ gr <- queryTxObject(txObject=txObject,
 
 ## Finding spacer sequences targeting KRAS
 
-`findSpacers` is the main function of `crisprDesign` for obtaining all possible spacer sequences that target protospacers located in our target DNA sequence(s). If a `GRanges` object is provided as input, a `BSgenome` object (an object that contains sequences of a reference genome) must be provided as well:
+`findSpacers` is the main function of `crisprDesign` for obtaining all 
+possible spacer sequences that target protospacers located in our 
+target DNA sequence(s). If a `GRanges` object is provided as input, 
+a `BSgenome` object (an object that contains sequences of a reference 
+genome) must be provided as well:
 
 ```{r, warning=FALSE, message=FALSE}
-library(BSgenome.Hsapiens.UCSC.hg38)
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 guideSet <- findSpacers(gr,
                         bsgenome=bsgenome,
@@ -119,9 +157,14 @@ guideSet <- findSpacers(gr,
 guideSet
 ```
 
-This function returns a `GuideSet` object that stores the genomic coordinates (PAM sites) for all spacer sequences found in the regions provided by `gr`. The `GuideSet` object is an extension of a `GenomicRanges` object that stores additional information about gRNAs. 
+This function returns a `GuideSet` object that stores the genomic 
+coordinates (PAM sites) for all spacer sequences found in the regions 
+provided by `gr`. The `GuideSet` object is an extension of 
+a `GenomicRanges` object that stores additional information about gRNAs. 
 
-There are several accessor functions we can use to extract information about the spacer sequences in `guideSet`, and here are a few examples with their corresponding outputs:
+There are several accessor functions we can use to extract information about 
+the spacer sequences in `guideSet`, and here are a few examples with 
+their corresponding outputs:
 
 ```{r}
 spacers(guideSet)
@@ -164,8 +207,7 @@ We can control the alignment parameters and output with several function argumen
 Let's search for on- and off-targets having up to 1 mismatch using bowtie. To use bowtie, we need to specify a bowtie index for the human genome: 
 
 ```{r}
-# Path of the hg38 bowtie index on my personal laptop:
-# bowtie_index <- "/Users/hoberecl/crisprIndices/bowtie/hg38/hg38"
+# Users need to change this path to their local bowtie index
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
@@ -216,14 +258,17 @@ guideSet <- removeRepeats(guideSet,
 
 ## On-target scoring (gRNA efficiency)
 
-`addOnTargetScores` adds scores from on-target efficiency algorithms specified by the `methods` argument (or all available methods if `NULL`) available in the R package [crisprScore](https://github.com/Jfortin1/crisprScore) and appends them to the `GuideSet`:
+`addOnTargetScores` adds scores from on-target efficiency algorithms 
+specified by the `methods` argument (or all available methods if `NULL`) available in the R package [crisprScore](https://github.com/Jfortin1/crisprScore) and appends them to the `GuideSet`:
 
 ```{r, eval=TRUE, warning=FALSE, message=FALSE}
 guideSet <- addOnTargetScores(guideSet,
                               methods=c("deepcpf1"))
+guideSet
 ```
 
-See the [crisprScore page](https://github.com/Jfortin1/crisprScore) for a full description of the different scores. 
+See the [crisprScore page](https://github.com/Jfortin1/crisprScore) for a 
+full description of the different scores. 
 
 
 ## Restriction enzymes
@@ -296,8 +341,13 @@ Common single-nucleotide polymorphisms (SNPs) can change the on-target and off-t
 VCF files for common SNPs (dbSNPs) can be downloaded from NCBI on the [dbSNP website](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf/). We will use one of those files, after having downloaded it to our local machine.
 
 ```{r, eval=TRUE,warning=FALSE, message=FALSE}
+# Users need to change this path to their local file
 vcf <- "/Users/fortinj2/crisprIndices/snps/dbsnp151.grch38/00-common_all_snps_only.vcf.gz"
-# vcf <- "/Users/hoberecl/crisprIndices/snps/dbsnp151.grch38/00-common_all_snps_only.vcf.gz"
+```
+
+and we add a SNP annotation using the following command:
+
+```{r, eval=TRUE,warning=FALSE, message=FALSE}
 guideSet <- addSNPAnnotation(guideSet, vcf=vcf)
 snps(guideSet)
 ```
@@ -307,7 +357,14 @@ The `rs_site_rel` gives the relative position of the SNP with respect to the `pa
 
 ## Filtering and ranking gRNAs
 
-Once our gRNAs are fully annotated we can filter out unwantd gRNAs with the function `filterSpacers` then rank the best remaining gRNAs with `rankSpacers`. But first, let's check which criteria we can filter and rank on based on the existing annotation in `guideSet` with the `validCriteria` function.
+Once our gRNAs are fully annotated, we can filter out unwanted gRNAs 
+with the function `filterSpacers`, and rank the best remaining gRNAs 
+with `rankSpacers`. 
+
+
+To se which criteria are available for filtering and ranking based on a 
+particular `GuideSet` object, one can use the `validCriteria` function 
+as follows:
 
 ```{r}
 validCriteria(guideSet)
@@ -315,9 +372,9 @@ validCriteria(guideSet)
 
 As an example, suppose that we only want to keep gRNAs that meet the following criteria:
 
-- has percent GC between 20% and 80%
-- does not contain a polyT strech
-- does not have EcoRI or KpnI restriction sites
+- have percent GC between 20% and 80%
+- do not contain a polyT strech
+- do not have EcoRI or KpnI restriction sites
 
 ```{r}
 filter_criteria <- list(percentGC=c(20, 80),
@@ -328,13 +385,16 @@ guideSet <- filterSpacers(guideSet,
                           criteria=filter_criteria)
 ```
 
-The arguments for `rankSpacers` are the same, but with a subtle difference for `criteria`: the order of elements defines the priority for ranking. As an example, suppose we have the following ranking criteria, in order of importance:
+The arguments for `rankSpacers` are the same, but with a subtle difference 
+for `criteria`: the order of elements defines the priority for ranking. 
+As an example, suppose we have the following ranking criteria, in order of importance:
 
 - few off-targets with one mismatch; preferably no such off-targets
 - high on-target score (DeepCpf1)
 - targets an exon common to all KRAS isoforms
 
-In setting up the list for `criteria`, we can see from `validCriteria(guideSet)` above that `n1` (off-targets with one mismatch) takes ascending values, `score_deephf` takes descending values, and `isCommonExon` requires a gene ID (Ensembl ID). For integer values, such as `n1`, we recommend using non-integer values in the `criteria` so the boundaries between ranks is unambiguous. Here's an example `criteria` we will use to rank our guides:
+In setting up the list for `criteria`, we can see from 
+`validCriteria(guideSet)` above that `n1` (off-targets with one mismatch) takes ascending values, `score_deephf` takes descending values, and `isCommonExon` requires a gene ID (Ensembl ID). For integer values, such as `n1`, we recommend using non-integer values in the `criteria` so the boundaries between ranks is unambiguous. Here's an example `criteria` we will use to rank our guides:
 
 ```{r}
 rank_criteria <- list(n1=c(0.5, 1.5, 2.5, 5.5),
@@ -352,7 +412,11 @@ Our `guideSet` is now sorted according to our criteria, with the best guides fir
 guideSet$rankings
 ```
 
-The data frame contains a column for the bin value of each criterium, along with an absolute score in the `rank` column, where a rank of `"1"` indicates a guide that meets the highest specified level (bin value of 1) for each of our criteria (in this example, that would translate to `n1<=0.5 && score_deepcpf1>0.8 && isCommonExon==TRUE`).
+The data frame contains a column for the bin value of each criterion, 
+along with an absolute score in the `rank` column, where a rank of "1" 
+indicates a guide that meets the highest specified level (bin value of 1)
+for each of our criteria (in this example, that 
+would translate to `n1<=0.5 && score_deepcpf1>0.8 && isCommonExon==TRUE`).
 
 
 # Session Info
