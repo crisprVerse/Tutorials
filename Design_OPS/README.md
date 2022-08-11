@@ -1,31 +1,24 @@
 Using crisprDesign to design gRNAs for optical pooled screening (OPS)
 ================
 
--   <a href="#introduction" id="toc-introduction">Introduction</a>
--   <a href="#installation" id="toc-installation">Installation</a>
--   <a href="#terminology" id="toc-terminology">Terminology</a>
--   <a href="#design-for-optical-pooled-screening-ops"
-    id="toc-design-for-optical-pooled-screening-ops">Design for optical
-    pooled screening (OPS)</a>
-    -   <a href="#loading-packages" id="toc-loading-packages">Loading
-        packages</a>
-    -   <a href="#creating-the-guideset" id="toc-creating-the-guideset">Creating
-        the GuideSet</a>
-    -   <a href="#adding-ops-barcodes" id="toc-adding-ops-barcodes">Adding OPS
-        barcodes</a>
-    -   <a href="#barcode-distance-matrix"
-        id="toc-barcode-distance-matrix">Barcode distance matrix</a>
-    -   <a href="#designing-ops-libraries"
-        id="toc-designing-ops-libraries">Designing OPS libraries</a>
-    -   <a href="#adding-grnas-to-an-existing-ops-library"
-        id="toc-adding-grnas-to-an-existing-ops-library">Adding gRNAs to an
-        existing OPS library</a>
--   <a href="#session-info" id="toc-session-info">Session Info</a>
--   <a href="#references" id="toc-references">References</a>
+-   [Introduction](#introduction)
+-   [Installation](#installation)
+-   [Terminology](#terminology)
+-   [Design for optical pooled screening
+    (OPS)](#design-for-optical-pooled-screening-ops)
+    -   [Loading packages](#loading-packages)
+    -   [Creating the GuideSet](#creating-the-guideset)
+    -   [Adding OPS barcodes](#adding-ops-barcodes)
+    -   [Barcode distance matrix](#barcode-distance-matrix)
+    -   [Designing OPS libraries](#designing-ops-libraries)
+    -   [Adding gRNAs to an existing OPS
+        library](#adding-grnas-to-an-existing-ops-library)
+-   [Session Info](#session-info)
+-   [References](#references)
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 10 August, 2022
+Date: 11 August, 2022
 
 # Introduction
 
@@ -36,19 +29,21 @@ sequences are partially sequenced from the 5-prime end; the length of
 these truncated sequences, or barcodes, which corresponds to the number
 of sequencing cycles, is fixed and chosen by the experimentalist. From a
 gRNA design perspective, additional constraints are needed to ensure
-sufficient dissimilarity between the barcodes for their identification.
+sufficient dissimilarity between the rruncated barcodes for their
+identification during the analysis.
 
 This tutorial will demonstrate how to design gRNAs for use in optical
-pooled screens, with emphasis on the constraints described above. While
-the usual gRNA design considerations for a given application still
-apply, they are omitted here, and the user is referred to the
-[applicable tutorial](https://github.com/crisprVerse/Tutorials) for more
-information.
+pooled screens, with emphasis on the constraints described above. Common
+gRNA design steps that are not specific to OPS are omitted in this
+tutorial (e.g. off-target search, or on-target activity prediction)
+here. Users can peruse through the list of [available
+tutorials](https://github.com/crisprVerse/Tutorials) for more
+information regarind application-specific gRNA design rules.
 
 # Installation
 
-The Bioconductor packages needed in this tutorial can be downloaded
-using the following commands:
+The Bioconductor packages needed in this tutorial can be installed using
+the following commands:
 
 ``` r
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -58,14 +53,14 @@ BiocManager::install("crisprDesign")
 BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 ```
 
-The GitHub packages needed in this tutorial can be downloaded using the
+The GitHub packages needed in this tutorial can be installed using the
 following commands:
 
 ``` r
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 
-devtools::install_github("Jfortin1/crisprDesignData")
+devtools::install_github("crisprVerse/crisprDesignData")
 ```
 
 # Terminology
@@ -77,9 +72,12 @@ to get familiar with the terminology used throughout this tutorial.
 # Design for optical pooled screening (OPS)
 
 To illustrate the functionalities of `crisprDesign` for designing OPS
-libraries, we will design a small CRISPRko OPS library targeting genes
-of the human RAS family: KRAS, HRAS, and NRAS. This library will use the
-SpCas9 nuclease and have 8 sequencing cycles.
+libraries, we will design a small CRISPRko OPS library targeting 3 genes
+of the human RAS family: KRAS, HRAS, and NRAS. We will use the SpCas9
+nuclease.
+
+We will design gRNAs for an experiment that uses 8 in situ sequencing
+cycles:
 
 ``` r
 n_cycles=8
@@ -99,23 +97,25 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 ## Creating the GuideSet
 
 We begin by loading the SpCas9 `CrisprNuclease` object from the
-`crisprBase` package and data containing gene regions for the human
-genome from the `crisprDesignData` package, `txdb_human`. For more
-information on `txdb_human` and how to create similar gene annotation
-objects, see the [Building a gene annotation
-object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
-tutorial.
+`crisprBase` package
 
 ``` r
 data(SpCas9, package="crisprBase")
+```
+
+as well as data containing gene regions for the human genome:
+
+``` r
 data(txdb_human, package="crisprDesignData")
 ```
 
+For more information on `txdb_human` and how to create similar gene
+annotation objects, see the [Building a gene annotation
+object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
+tutorial.
+
 Next, we find the CDS coordinates for our genes using the
-`queryTxObject` function then build our `GuideSet` with the
-`findSpacers` function. As we will want to distinguish which gene each
-spacer targets, we will add `gene_symbol` and `gene_id` columns from
-`target_regions`.
+`queryTxObject` function:
 
 ``` r
 target_genes <- c("KRAS", "HRAS", "NRAS")
@@ -123,11 +123,20 @@ target_regions <- queryTxObject(txdb_human,
                                 featureType="cds",
                                 queryColumn="gene_symbol",
                                 queryValue=target_genes)
+```
+
+then build our `GuideSet` with the `findSpacers` function:
+
+``` r
 gs <- findSpacers(target_regions,
                   crisprNuclease=SpCas9,
                   bsgenome=BSgenome.Hsapiens.UCSC.hg38)
+```
 
-## add gene_symbol and gene_id
+As we will want to distinguish which gene each spacer targets, we will
+add `gene_symbol` and `gene_id` columns from `target_regions`.
+
+``` r
 gene_info <- target_regions[gs$region]
 gs$gene_symbol <- gene_info$gene_symbol
 gs$gene_id <- gene_info$gene_id
@@ -137,7 +146,7 @@ gs$gene_id <- gene_info$gene_id
 
 We can add our OPS barcodes to the GuideSet with the `addOpsBarcodes`
 function. This function extracts the `n_cycles` nucleotides from the
-5-prime end of our spacers and stores them in the `opsBarcode` column.
+5-prime end of our spacers and stores them in the `opsBarcode` column:
 
 ``` r
 gs <- addOpsBarcodes(gs,
@@ -164,7 +173,7 @@ also allows for insertions and deletions.
 
 As a brief demonstration, let’s look at the distances between the first
 few barcodes in our `GuideSet`. We set the `binarize` argument (more on
-this parameter later) to `FALSE` to show distances.
+this parameter later) to `FALSE` to show distances:
 
 ``` r
 barcodes <- gs$opsBarcode
@@ -208,27 +217,27 @@ whether this distance is sufficiently dissimilar for accurate
 identification of spacers during sequencing. This minimum distance edit
 (`min_dist_edit`) relies on the accuracy of various steps in the
 experiment. Suppose, as a conservative estimate, that we can expect no
-more than two edits per barcode in our example. A `min_dist_edit` of `5`
-(`> 2 + 2`) should suffice. Setting the `binnarize` argument to `TRUE`,
-and passing our minimum distance edit value to `min_dist_edit` will
-binarize the output, flagging barcodes (with a value of `1`) that are
-too similar and should not both be included in our library.
+more than two edits per barcode in our example. A `min_dist_edit` of `3`
+should suffice. Setting the `binnarize` argument to `TRUE`, and passing
+our minimum distance edit value to `min_dist_edit` will binarize the
+output, flagging barcodes (with a value of `1`) that are too similar and
+should not both be included in our library:
 
 ``` r
 dist <- getBarcodeDistanceMatrix(barcodes[1:5],
                                  barcodes[6:10],
                                  binnarize=TRUE,
-                                 min_dist_edit=5)
+                                 min_dist_edit=3)
 dist
 ```
 
-    ## 5 x 5 sparse Matrix of class "dgCMatrix"
+    ## 5 x 5 sparse Matrix of class "dtCMatrix"
     ##          AGCAGTGA CAGCAGTG AACTCAAC AAACTCAA TGCTGTTG
     ## CCATGTGT        .        .        .        .        .
-    ## TTGTATGG        .        .        .        .        1
-    ## CCTTGTTA        .        .        .        .        1
+    ## TTGTATGG        .        .        .        .        .
+    ## CCTTGTTA        .        .        .        .        .
     ## GATGGGAC        .        .        .        .        .
-    ## TGATGGGA        1        .        .        .        1
+    ## TGATGGGA        .        .        .        .        .
 
 Using this function with large sets of barcodes can be taxing on memory.
 To manage this, it is recommended to set `splitByChunks=TRUE` and
@@ -238,9 +247,9 @@ specify the number of chunks with `n_chunks` (see
 ## Designing OPS libraries
 
 The `designOpsLibrary` function allows users to perform a complete
-end-to-end library design. We will design our library with 4 gRNAs per
-gene using the `n_guides` and `gene_field` (to identify gRNAs by gene
-target) parameters. We will also use the same distance method and
+end-to-end OPS library design. We will design our library with 4 gRNAs
+per gene using the `n_guides` and `gene_field` (to identify gRNAs by
+gene target) parameters. We will also use the same distance method and
 minimum distance edit parameters as in the example above.
 
 NOTE: it is advised to first complete other steps in gRNA design
@@ -291,7 +300,7 @@ additional `opsLibrary` argument to which we pass our original OPS
 library.
 
 To demonstrate, we will add the MRAS gene to our library. We first
-construct the `GuideSet`,
+construct the `GuideSet` for MRAS:
 
 ``` r
 target_region <- queryTxObject(txdb_human,
@@ -301,13 +310,11 @@ target_region <- queryTxObject(txdb_human,
 gs_mras <- findSpacers(target_region,
                        crisprNuclease=SpCas9,
                        bsgenome=BSgenome.Hsapiens.UCSC.hg38)
-
-## add gene_symbol and gene_id
 gs_mras$gene_symbol <- "MRAS"
 gs_mras$gene_id <- "ENSG00000158186"
 ```
 
-then add barcodes and construct the `data.frame`,
+then add barcodes and construct the `data.frame`:
 
 ``` r
 ## add OPS barcodes
@@ -379,64 +386,64 @@ sessionInfo()
     ## 
     ## other attached packages:
     ##  [1] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.64.0                  
-    ##  [3] rtracklayer_1.56.1                Biostrings_2.64.0                
-    ##  [5] XVector_0.36.0                    GenomicRanges_1.48.0             
+    ##  [3] rtracklayer_1.55.4                Biostrings_2.64.0                
+    ##  [5] XVector_0.35.0                    GenomicRanges_1.48.0             
     ##  [7] GenomeInfoDb_1.32.2               IRanges_2.30.0                   
-    ##  [9] S4Vectors_0.34.0                  BiocGenerics_0.42.0              
-    ## [11] crisprDesignData_0.99.13          crisprDesign_0.99.113            
-    ## [13] crisprBase_1.1.2                 
+    ##  [9] S4Vectors_0.33.11                 BiocGenerics_0.42.0              
+    ## [11] crisprDesignData_0.99.13          crisprDesign_0.99.117            
+    ## [13] crisprBase_1.1.5                 
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] bitops_1.0-7                  matrixStats_0.62.0           
-    ##   [3] bit64_4.0.5                   filelock_1.0.2               
-    ##   [5] progress_1.2.2                httr_1.4.3                   
-    ##   [7] tools_4.2.0                   utf8_1.2.2                   
-    ##   [9] R6_2.5.1                      DBI_1.1.3                    
-    ##  [11] tidyselect_1.1.2              prettyunits_1.1.1            
-    ##  [13] bit_4.0.4                     curl_4.3.2                   
-    ##  [15] compiler_4.2.0                crisprBowtie_1.0.0           
-    ##  [17] cli_3.3.0                     Biobase_2.56.0               
-    ##  [19] basilisk.utils_1.9.1          crisprScoreData_1.1.3        
-    ##  [21] xml2_1.3.3                    DelayedArray_0.22.0          
-    ##  [23] randomForest_4.7-1.1          readr_2.1.2                  
-    ##  [25] rappdirs_0.3.3                stringr_1.4.0                
-    ##  [27] digest_0.6.29                 Rsamtools_2.12.0             
-    ##  [29] rmarkdown_2.14                crisprScore_1.1.14           
-    ##  [31] basilisk_1.9.2                pkgconfig_2.0.3              
-    ##  [33] htmltools_0.5.3               MatrixGenerics_1.8.1         
-    ##  [35] dbplyr_2.2.1                  fastmap_1.1.0                
-    ##  [37] rlang_1.0.4                   rstudioapi_0.13              
-    ##  [39] RSQLite_2.2.15                shiny_1.7.2                  
-    ##  [41] BiocIO_1.6.0                  generics_0.1.3               
-    ##  [43] jsonlite_1.8.0                BiocParallel_1.30.3          
-    ##  [45] dplyr_1.0.9                   VariantAnnotation_1.42.1     
-    ##  [47] RCurl_1.98-1.8                magrittr_2.0.3               
-    ##  [49] GenomeInfoDbData_1.2.8        Matrix_1.4-1                 
-    ##  [51] Rcpp_1.0.9                    fansi_1.0.3                  
-    ##  [53] reticulate_1.25               Rbowtie_1.36.0               
-    ##  [55] lifecycle_1.0.1               stringi_1.7.8                
-    ##  [57] yaml_2.3.5                    SummarizedExperiment_1.26.1  
-    ##  [59] zlibbioc_1.42.0               BiocFileCache_2.4.0          
-    ##  [61] AnnotationHub_3.4.0           grid_4.2.0                   
-    ##  [63] blob_1.2.3                    promises_1.2.0.1             
-    ##  [65] parallel_4.2.0                ExperimentHub_2.4.0          
-    ##  [67] crayon_1.5.1                  dir.expiry_1.4.0             
-    ##  [69] lattice_0.20-45               GenomicFeatures_1.48.3       
-    ##  [71] hms_1.1.1                     KEGGREST_1.36.3              
-    ##  [73] knitr_1.39                    pillar_1.8.0                 
-    ##  [75] rjson_0.2.21                  codetools_0.2-18             
-    ##  [77] biomaRt_2.52.0                BiocVersion_3.15.2           
-    ##  [79] XML_3.99-0.10                 glue_1.6.2                   
-    ##  [81] evaluate_0.15                 BiocManager_1.30.18          
-    ##  [83] httpuv_1.6.5                  png_0.1-7                    
-    ##  [85] vctrs_0.4.1                   tzdb_0.3.0                   
-    ##  [87] purrr_0.3.4                   assertthat_0.2.1             
-    ##  [89] cachem_1.0.6                  xfun_0.31                    
-    ##  [91] mime_0.12                     xtable_1.8-4                 
-    ##  [93] restfulr_0.0.15               later_1.3.0                  
-    ##  [95] tibble_3.1.8                  GenomicAlignments_1.32.1     
-    ##  [97] AnnotationDbi_1.58.0          memoise_2.0.1                
-    ##  [99] interactiveDisplayBase_1.34.0 ellipsis_0.3.2
+    ##  [1] bitops_1.0-7                  matrixStats_0.61.0           
+    ##  [3] bit64_4.0.5                   filelock_1.0.2               
+    ##  [5] progress_1.2.2                httr_1.4.2                   
+    ##  [7] tools_4.2.0                   utf8_1.2.2                   
+    ##  [9] R6_2.5.1                      DBI_1.1.2                    
+    ## [11] tidyselect_1.1.2              prettyunits_1.1.1            
+    ## [13] bit_4.0.4                     curl_4.3.2                   
+    ## [15] compiler_4.2.0                crisprBowtie_1.1.1           
+    ## [17] cli_3.3.0                     Biobase_2.55.0               
+    ## [19] basilisk.utils_1.9.1          crisprScoreData_1.1.3        
+    ## [21] xml2_1.3.3                    DelayedArray_0.21.2          
+    ## [23] randomForest_4.7-1            readr_2.1.2                  
+    ## [25] rappdirs_0.3.3                stringr_1.4.0                
+    ## [27] digest_0.6.29                 Rsamtools_2.11.0             
+    ## [29] rmarkdown_2.13                crisprScore_1.1.13           
+    ## [31] basilisk_1.9.2                pkgconfig_2.0.3              
+    ## [33] htmltools_0.5.2               MatrixGenerics_1.7.0         
+    ## [35] dbplyr_2.1.1                  fastmap_1.1.0                
+    ## [37] rlang_1.0.4                   rstudioapi_0.13              
+    ## [39] RSQLite_2.2.12                shiny_1.7.1                  
+    ## [41] BiocIO_1.5.0                  generics_0.1.2               
+    ## [43] jsonlite_1.8.0                BiocParallel_1.29.18         
+    ## [45] dplyr_1.0.8                   VariantAnnotation_1.41.3     
+    ## [47] RCurl_1.98-1.6                magrittr_2.0.2               
+    ## [49] GenomeInfoDbData_1.2.7        Matrix_1.4-0                 
+    ## [51] Rcpp_1.0.8.3                  fansi_1.0.2                  
+    ## [53] reticulate_1.25               Rbowtie_1.36.0               
+    ## [55] lifecycle_1.0.1               stringi_1.7.6                
+    ## [57] yaml_2.3.5                    SummarizedExperiment_1.25.3  
+    ## [59] zlibbioc_1.41.0               BiocFileCache_2.3.4          
+    ## [61] AnnotationHub_3.3.9           grid_4.2.0                   
+    ## [63] blob_1.2.2                    promises_1.2.0.1             
+    ## [65] parallel_4.2.0                ExperimentHub_2.3.5          
+    ## [67] crayon_1.5.0                  dir.expiry_1.3.0             
+    ## [69] lattice_0.20-45               GenomicFeatures_1.47.13      
+    ## [71] hms_1.1.1                     KEGGREST_1.35.0              
+    ## [73] knitr_1.37                    pillar_1.7.0                 
+    ## [75] rjson_0.2.21                  biomaRt_2.51.3               
+    ## [77] BiocVersion_3.15.0            XML_3.99-0.9                 
+    ## [79] glue_1.6.2                    evaluate_0.15                
+    ## [81] BiocManager_1.30.16           httpuv_1.6.5                 
+    ## [83] png_0.1-7                     vctrs_0.3.8                  
+    ## [85] tzdb_0.2.0                    purrr_0.3.4                  
+    ## [87] assertthat_0.2.1              cachem_1.0.6                 
+    ## [89] xfun_0.30                     mime_0.12                    
+    ## [91] xtable_1.8-4                  restfulr_0.0.13              
+    ## [93] later_1.3.0                   tibble_3.1.6                 
+    ## [95] GenomicAlignments_1.31.2      AnnotationDbi_1.57.1         
+    ## [97] memoise_2.0.1                 interactiveDisplayBase_1.33.0
+    ## [99] ellipsis_0.3.2
 
 # References
 

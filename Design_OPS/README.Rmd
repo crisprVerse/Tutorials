@@ -17,14 +17,28 @@ Date: `r format(Sys.time(), '%d %B, %Y')`
 
 # Introduction
 
-Optical pooled screening (OPS) combines image-based sequencing (in situ sequencing) of gRNAs and optical phenotyping on the same physical wells [@ops]. In such experiments, guide RNA (gRNA) spacer sequences are partially sequenced from the 5-prime end; the length of these truncated sequences, or barcodes, which corresponds to the number of sequencing cycles, is fixed and chosen by the experimentalist. From a gRNA design perspective, additional constraints are needed to ensure sufficient dissimilarity between the barcodes for their identification.
+Optical pooled screening (OPS) combines image-based sequencing (in 
+situ sequencing) of gRNAs and optical phenotyping on the same physical 
+wells [@ops]. In such experiments, guide RNA (gRNA) spacer sequences 
+are partially sequenced from the 5-prime end; the length of these 
+truncated sequences, or barcodes, which corresponds to the number of 
+sequencing cycles, is fixed and chosen by the experimentalist. From a 
+gRNA design perspective, additional constraints are needed to ensure 
+sufficient dissimilarity between the rruncated barcodes for their 
+identification during the analysis.
 
-This tutorial will demonstrate how to design gRNAs for use in optical pooled screens, with emphasis on the constraints described above. While the usual gRNA design considerations for a given application still apply, they are omitted here, and the user is referred to the [applicable tutorial](https://github.com/crisprVerse/Tutorials) for more information.
+This tutorial will demonstrate how to design gRNAs for use in 
+optical pooled screens, with emphasis on the constraints described 
+above. Common gRNA design steps that are not specific to OPS are omitted 
+in this tutorial (e.g. off-target search, or on-target activity prediction)
+here. Users can peruse through the list of [available tutorials](https://github.com/crisprVerse/Tutorials) for more information
+regarind application-specific gRNA design rules.
 
 
 # Installation
 
-The Bioconductor packages needed in this tutorial can be downloaded using the following commands:
+The Bioconductor packages needed in this tutorial can be installed 
+using the following commands:
 
 ```{r, eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -34,13 +48,14 @@ BiocManager::install("crisprDesign")
 BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 ```
 
-The GitHub packages needed in this tutorial can be downloaded using the following commands:
+The GitHub packages needed in this tutorial can be installed using the 
+following commands:
 
 ```{r, eval=FALSE}
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 
-devtools::install_github("Jfortin1/crisprDesignData")
+devtools::install_github("crisprVerse/crisprDesignData")
 ```
 
 
@@ -51,7 +66,12 @@ See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree
 
 # Design for optical pooled screening (OPS)
 
-To illustrate the functionalities of `crisprDesign` for designing OPS libraries, we will design a small CRISPRko OPS library targeting genes of the human RAS family: KRAS, HRAS, and NRAS. This library will use the SpCas9 nuclease and have 8 sequencing cycles.
+To illustrate the functionalities of `crisprDesign` for designing 
+OPS libraries, we will design a small CRISPRko OPS library targeting 
+3 genes of the human RAS family: KRAS, HRAS, and NRAS. We will use the SpCas9
+nuclease. 
+
+We will design gRNAs for an experiment that uses 8 in situ sequencing cycles:
 
 ```{r}
 n_cycles=8
@@ -71,14 +91,23 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 
 ## Creating the GuideSet
 
-We begin by loading the SpCas9 `CrisprNuclease` object from the `crisprBase` package and data containing gene regions for the human genome from the `crisprDesignData` package, `txdb_human`. For more information on `txdb_human` and how to create similar gene annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial.
+We begin by loading the SpCas9 `CrisprNuclease` object from the `crisprBase`
+package
 
 ```{r}
 data(SpCas9, package="crisprBase")
+```
+
+as well as data containing gene regions for the human genome:
+
+```{r}
 data(txdb_human, package="crisprDesignData")
 ```
 
-Next, we find the CDS coordinates for our genes using the `queryTxObject` function then build our `GuideSet` with the `findSpacers` function. As we will want to distinguish which gene each spacer targets, we will add `gene_symbol` and `gene_id` columns from `target_regions`.
+For more information on `txdb_human` and how to create similar gene annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial.
+
+
+Next, we find the CDS coordinates for our genes using the `queryTxObject` function:
 
 ```{r}
 target_genes <- c("KRAS", "HRAS", "NRAS")
@@ -86,11 +115,19 @@ target_regions <- queryTxObject(txdb_human,
                                 featureType="cds",
                                 queryColumn="gene_symbol",
                                 queryValue=target_genes)
+```
+
+then build our `GuideSet` with the `findSpacers` function:
+
+```{r}
 gs <- findSpacers(target_regions,
                   crisprNuclease=SpCas9,
                   bsgenome=BSgenome.Hsapiens.UCSC.hg38)
+```
 
-## add gene_symbol and gene_id
+As we will want to distinguish which gene each spacer targets, we will add `gene_symbol` and `gene_id` columns from `target_regions`.
+
+```{r}
 gene_info <- target_regions[gs$region]
 gs$gene_symbol <- gene_info$gene_symbol
 gs$gene_id <- gene_info$gene_id
@@ -99,7 +136,7 @@ gs$gene_id <- gene_info$gene_id
 
 ## Adding OPS barcodes
 
-We can add our OPS barcodes to the GuideSet with the `addOpsBarcodes` function. This function extracts the `n_cycles` nucleotides from the 5-prime end of our spacers and stores them in the `opsBarcode` column.
+We can add our OPS barcodes to the GuideSet with the `addOpsBarcodes` function. This function extracts the `n_cycles` nucleotides from the 5-prime end of our spacers and stores them in the `opsBarcode` column:
 
 ```{r}
 gs <- addOpsBarcodes(gs,
@@ -110,9 +147,15 @@ head(gs$opsBarcode)
 
 ## Barcode distance matrix
 
-We can pass our barcodes to the function `getBarcodeDistanceMatrix` to calculate the nucleotide distance between them. The `dist_method` argument determines the type of distance to calculate: `"hamming"`, which only considers substitutions (default) or `"levenstein"`, which also allows for insertions and deletions. 
+We can pass our barcodes to the function `getBarcodeDistanceMatrix` to 
+calculate the nucleotide distance between them. The `dist_method` argument
+determines the type of distance to calculate: `"hamming"`, which only 
+considers substitutions (default) or `"levenstein"`, which also allows for
+insertions and deletions. 
 
-As a brief demonstration, let's look at the distances between the first few barcodes in our `GuideSet`. We set the `binarize` argument (more on this parameter later) to `FALSE` to show distances.
+As a brief demonstration, let's look at the distances between the first few
+barcodes in our `GuideSet`. We set the `binarize` argument (more on this
+parameter later) to `FALSE` to show distances:
 
 ```{r}
 barcodes <- gs$opsBarcode
@@ -121,7 +164,11 @@ dist <- getBarcodeDistanceMatrix(barcodes[1:5],
 dist
 ```
 
-Note that the output is a sparse matrix, so the barcodes along the diagonal (i.e., compared against themselves) return `.`, or a distance of zero. To compare one set of barcodes against another, we can pass the other set to the `targetBarcodes` argument (the former barcode set being passed to the `queryBarcodes` argument, which is compared against itself when `targetBarcodes` is `NULL`):
+Note that the output is a sparse matrix, so the barcodes along the diagonal
+(i.e., compared against themselves) return `.`, or a distance of zero. 
+To compare one set of barcodes against another, we can pass the other set
+to the `targetBarcodes` argument (the former barcode set being passed to 
+the `queryBarcodes` argument, which is compared against itself when `targetBarcodes` is `NULL`):
 
 ```{r}
 dist <- getBarcodeDistanceMatrix(barcodes[1:5],
@@ -130,24 +177,40 @@ dist <- getBarcodeDistanceMatrix(barcodes[1:5],
 dist
 ```
 
-The question we are interested in with respect to barcode distances is whether this distance is sufficiently dissimilar for accurate identification of spacers during sequencing. This minimum distance edit (`min_dist_edit`) relies on the accuracy of various steps in the experiment. Suppose, as a conservative estimate, that we can expect no more than two edits per barcode in our example. A `min_dist_edit` of `5` (`> 2 + 2`) should suffice. Setting the `binnarize` argument to `TRUE`, and passing our minimum distance edit value to `min_dist_edit` will binarize the output, flagging barcodes (with a value of `1`) that are too similar and should not both be included in our library.
+The question we are interested in with respect to barcode distances is 
+whether this distance is sufficiently dissimilar for accurate identification 
+of spacers during sequencing. This minimum distance edit (`min_dist_edit`) 
+relies on the accuracy of various steps in the experiment. Suppose,
+as a conservative estimate, that we can expect no more than two edits 
+per barcode in our example. A `min_dist_edit` of `3` should 
+suffice. Setting the `binnarize` argument to `TRUE`, and passing our minimum distance edit value to `min_dist_edit` will binarize the output, flagging barcodes (with a value of `1`) that are too similar and should not both be included in our library:
 
 ```{r}
 dist <- getBarcodeDistanceMatrix(barcodes[1:5],
                                  barcodes[6:10],
                                  binnarize=TRUE,
-                                 min_dist_edit=5)
+                                 min_dist_edit=3)
 dist
 ```
 
-Using this function with large sets of barcodes can be taxing on memory. To manage this, it is recommended to set `splitByChunks=TRUE` and specify the number of chunks with `n_chunks` (see `?getBarcodeDistanceMatrix`).
+Using this function with large sets of barcodes can be taxing on memory.
+To manage this, it is recommended to set `splitByChunks=TRUE` and specify 
+the number of chunks with `n_chunks` (see `?getBarcodeDistanceMatrix`).
 
 
 ## Designing OPS libraries
 
-The `designOpsLibrary` function allows users to perform a complete end-to-end library design. We will design our library with 4 gRNAs per gene using the `n_guides` and `gene_field` (to identify gRNAs by gene target) parameters. We will also use the same distance method and minimum distance edit parameters as in the example above.
+The `designOpsLibrary` function allows users to perform a complete 
+end-to-end OPS library design. We will design our library with 4 
+gRNAs per gene using the `n_guides` and `gene_field` (to identify gRNAs
+by gene target) parameters. We will also use the same distance method 
+and minimum distance edit parameters as in the example above.
 
-NOTE: it is advised to first complete other steps in gRNA design (annotating, filtering, and ranking gRNAs in the `GuideSet`) prior to using this function; this will ensure the library contains the best gRNAs. As this example did not rank gRNAs, we are notified that rankings are assigned by the order in which gRNAs appear in our input.
+NOTE: it is advised to first complete other steps in gRNA design
+(annotating, filtering, and ranking gRNAs in the `GuideSet`) prior to 
+using this function; this will ensure the library contains the best 
+gRNAs. As this example did not rank gRNAs, we are notified that 
+rankings are assigned by the order in which gRNAs appear in our input.
 
 ```{r}
 df <- data.frame(ID=names(gs),
@@ -165,9 +228,14 @@ opsLibrary
 
 ## Adding gRNAs to an existing OPS library
 
-Suppose we later wish to add another gene target to our library, but also want to retain the gRNAs that are currently in our library. We can append these additional gRNAs with the `updateOpsLibrary` function. This function has the same parameters as `designOpsLibrary`, with an additional `opsLibrary` argument to which we pass our original OPS library.
+Suppose we later wish to add another gene target to our library, 
+but also want to retain the gRNAs that are currently in our library.
+We can append these additional gRNAs with the `updateOpsLibrary` function. 
+This function has the same parameters as `designOpsLibrary`, with an 
+additional `opsLibrary` argument to which we pass our original OPS library.
 
-To demonstrate, we will add the MRAS gene to our library. We first construct the `GuideSet`,
+To demonstrate, we will add the MRAS gene to our library. We first
+construct the `GuideSet` for MRAS:
 
 ```{r}
 target_region <- queryTxObject(txdb_human,
@@ -177,13 +245,11 @@ target_region <- queryTxObject(txdb_human,
 gs_mras <- findSpacers(target_region,
                        crisprNuclease=SpCas9,
                        bsgenome=BSgenome.Hsapiens.UCSC.hg38)
-
-## add gene_symbol and gene_id
 gs_mras$gene_symbol <- "MRAS"
 gs_mras$gene_id <- "ENSG00000158186"
 ```
 
-then add barcodes and construct the `data.frame`,
+then add barcodes and construct the `data.frame`:
 
 ```{r}
 ## add OPS barcodes
