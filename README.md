@@ -23,20 +23,19 @@
 
 ### Less common gRNA design workflows
 
-11. Paired gRNA design (multiplexing)
-12. Paired gRNA design (nickases)
-13. Working with a custom sequence
+11. Paired gRNA design 
+12. Working with a custom sequence
 
 ### Miscellaneous
 
-14. [Mapping gRNAs across species](https://github.com/crisprVerse/Tutorials/tree/master/Design_Cross_Reactivity)
-15. Working with minor and major alleles
-16. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
-17. [Design for optical pooled screening (OPS)](https://github.com/crisprVerse/Tutorials/tree/master/Design_OPS)
+13. [Mapping gRNAs across species](https://github.com/crisprVerse/Tutorials/tree/master/Design_Cross_Reactivity)
+14. Working with minor and major alleles
+15. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
+16. [Design for optical pooled screening (OPS)](https://github.com/crisprVerse/Tutorials/tree/master/Design_OPS)
 
 ### Building a genome-wide database for a given nuclease
 
-18. [Building a database for the human genome using Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
-19. [Building a database for the human transcriptome using CasRx](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_CasRx)
-20. [Building a database for the human promoterome using CRISPRa](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9_CRISPRa)
+17. [Building a database for the human genome using Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
+18. [Building a database for the human transcriptome using CasRx](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_CasRx)
+19. [Building a database for the human promoterome using CRISPRa](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9_CRISPRa)
 
