@@ -45,7 +45,7 @@ devtools::install_github("Jfortin1/crisprDesignData")
 
 ## Terminology
 
-See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar with the terminology used throughout
+See the [CRISPRko Cas9 design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar with the terminology used throughout
 this tutorial.
 
 ## Paired gRNA design overview
@@ -61,7 +61,7 @@ Here is a list of cases that will be covered in this tutorial:
 Before we dive into the different applications, we will describe a general
 use case to go over the main paired gRNA design features.
 
-# Designing pairs of gRNAs flanking a genomic region
+# A simple example: paired gRNAs flanking an exon
 
 To illustrate the general concept behind paired gRNA design, we 
 will show here how to design pairs of gRNAs flanking the second exon
@@ -75,7 +75,6 @@ library(crisprDesign)
 library(crisprDesignData)
 library(crisprBase)
 library(BSgenome.Hsapiens.UCSC.hg38)
-
 ```
 
 We will be designing gRNAs for the SpCas9 nuclease. We load the `SpCas9` 
@@ -144,8 +143,13 @@ pairs <- findSpacerPairs(x1=regionUpstream,
                          crisprNuclease=SpCas9)
 ```
 
-The `x1` and `x2` arguments specify the genomic regions in which gRNAs at position 1 and position 2 should be targeting, respectively. Let's see what the results look like:
+The `x1` and `x2` arguments specify the genomic regions in which gRNAs at position 1 and position 2 should be targeting, respectively. The function finds all possible pair combinations between spacers found in the region specified by `x1` and spacers found in the region specified by `x2`. Let' first name our pairs:
 
+```{r}
+names(pairs) <- paste0("pair_", seq_along(pairs))
+```
+
+Let's see what the results look like:
 ```{r}
 head(pairs, n=3)
 ```
@@ -177,11 +181,92 @@ knitr::include_graphics("./figures/paired_simplified.svg")
 ```
 
 
-The function `pamDistance` returns the distance between the PAM sites of the two gRNAs. The function `cutDistance` returns the distance between the cut sites of the two gRNAs, and the function `spacerDistance` returns the distance between the two spacer sequences of the gRNAs.
+The function `pamDistance` returns the distance between the PAM sites of the
+two gRNAs. The function `cutLength` returns the distance between the 
+cut sites of the two gRNAs, and the function `spacerDistance` 
+returns the distance between the two spacer sequences of the gRNAs.
+
+Most functionalities available for designing single gRNAs (`GuideSet` 
+annotation functions described in [this tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)) work similarly for `PairedGuideSet` objects. This includes:
+
+- `addSequenceFeatures`
+- `addSpacerAlignments`
+- `addGeneAnnotation`
+- `addTssAnnotation`
+- `addOnTargetScores`
+- `addOffTargetScores`
+- `addPamScores`
+- `addSNPAnnotation`
+- `addRestrictionEnzymes`
+- `addCompositeScores`
+- `addConservationScores`
+
+Each function adds an annotation to the first and second `GuideSet` objects
+stored in the `PairedGuideSet`. Let's look at an example using 
+`addSequenceFeatures`:
+
+```{r}
+pairs <- addSequenceFeatures(pairs)
+```
+
+and let's look at the `GuideSet` in the first position:
+
+```{r}
+head(first(pairs), n=3)
+```
+
+This comes in handy to filter out pairs with unwanted sgRNA characteristics, e.g. sgRNA with polyT stretches:
+
+```{r}
+good1 <- !first(pairs)$polyT
+good2 <- !second(pairs)$polyT
+pairs <- pairs[good1 & good2]
+```
+
+To select the final candidate pairs, one could filter out pairs with low predicted on-target activity. Let's add the DeepHF on-target activity score:
+
+```{r}
+pairs <- addOnTargetScores(pairs, methods="deephf")
+```
+
+and only keep pairs for which both gRNAs have a score greater than 0.5:
+
+```{r}
+good1 <- first(pairs)$score_deephf>=0.5
+good2 <- second(pairs)$score_deephf>=0.5
+pairs <- pairs[good1 & good2]
+```
+
+This leaves us with 2 candidate pairs:
+
+```{r}
+pairs
+```
+
+One can get the spacer sequences using the `spacers` accessor function as usual:
+
+```{r}
+spacers(pairs)
+```
+
+# Use cases
+
+## Double nicking with CRISPR/Cas9 
+
+Discussed in [@ran2013double]
+
+## Dual-promoter systems 
+
+Discussed in [@han2017synergistic]
+
+##  Multiplexing gRNAs with arrayed spacers (enAsCas12a) 
+
+Discussed in [@deweirdt2021optimization]
 
 
+## Nanopore Cas9-targeted sequencing (nCATS) 
 
-
+Discussed in [@han2017synergistic]
 
 
 # Session Info

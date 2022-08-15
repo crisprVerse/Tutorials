@@ -6,8 +6,16 @@ Using crisprDesign to design paired gRNAs
     -   [Installation](#installation)
     -   [Terminology](#terminology)
     -   [Paired gRNA design overview](#paired-grna-design-overview)
--   [Designing pairs of gRNAs flanking a genomic
-    region](#designing-pairs-of-grnas-flanking-a-genomic-region)
+-   [A simple example: paired gRNAs flanking an
+    exon](#a-simple-example-paired-grnas-flanking-an-exon)
+-   [Use cases](#use-cases)
+    -   [Double nicking with
+        CRISPR/Cas9](#double-nicking-with-crisprcas9)
+    -   [Dual-promoter systems](#dual-promoter-systems)
+    -   [Multiplexing gRNAs with arrayed spacers
+        (enAsCas12a)](#multiplexing-grnas-with-arrayed-spacers-enascas12a)
+    -   [Nanopore Cas9-targeted sequencing
+        (nCATS)](#nanopore-cas9-targeted-sequencing-ncats)
 -   [Session Info](#session-info)
 -   [References](#references)
 
@@ -45,8 +53,8 @@ devtools::install_github("Jfortin1/crisprDesignData")
 
 ## Terminology
 
-See the [CRISPRko design
-vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
+See the [CRISPRko Cas9 design
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
 to get familiar with the terminology used throughout this tutorial.
 
 ## Paired gRNA design overview
@@ -63,7 +71,7 @@ gRNAs. Here is a list of cases that will be covered in this tutorial:
 Before we dive into the different applications, we will describe a
 general use case to go over the main paired gRNA design features.
 
-# Designing pairs of gRNAs flanking a genomic region
+# A simple example: paired gRNAs flanking an exon
 
 To illustrate the general concept behind paired gRNA design, we will
 show here how to design pairs of gRNAs flanking the second exon of the
@@ -191,24 +199,32 @@ pairs <- findSpacerPairs(x1=regionUpstream,
 ```
 
 The `x1` and `x2` arguments specify the genomic regions in which gRNAs
-at position 1 and position 2 should be targeting, respectively. Let’s
-see what the results look like:
+at position 1 and position 2 should be targeting, respectively. The
+function finds all possible pair combinations between spacers found in
+the region specified by `x1` and spacers found in the region specified
+by `x2`. Let’ first name our pairs:
+
+``` r
+names(pairs) <- paste0("pair_", seq_along(pairs))
+```
+
+Let’s see what the results look like:
 
 ``` r
 head(pairs, n=3)
 ```
 
     ## PairedGuideSet object with 3 pairs and 4 metadata columns:
-    ##                  first           second | pamOrientation pamDistance
-    ##             <GuideSet>       <GuideSet> |    <character>   <numeric>
-    ##   [1] chr12:25245201:+ chr12:25245397:- |             in         196
-    ##   [2] chr12:25245215:- chr12:25245397:- |            rev         182
-    ##   [3] chr12:25245233:+ chr12:25245397:- |             in         164
-    ##       spacerDistance cutLength
-    ##            <integer> <numeric>
-    ##   [1]            198       202
-    ##   [2]            163       182
-    ##   [3]            166       170
+    ##                     first           second | pamOrientation pamDistance
+    ##                <GuideSet>       <GuideSet> |    <character>   <numeric>
+    ##   pair_1 chr12:25245201:+ chr12:25245397:- |             in         196
+    ##   pair_2 chr12:25245215:- chr12:25245397:- |            rev         182
+    ##   pair_3 chr12:25245233:+ chr12:25245397:- |             in         164
+    ##          spacerDistance cutLength
+    ##               <integer> <numeric>
+    ##   pair_1            198       202
+    ##   pair_2            163       182
+    ##   pair_3            166       170
 
 The returned object is a `PairedGuideSet`, which can be though of a list
 of two `GuideSet` objects. The first and second `GuideSet` store
@@ -275,9 +291,140 @@ and will be discussed in the relevant sections below.
 <img src="./figures/paired_simplified.svg" title="Different PAM orientations for Cas9 paired gRNAs" alt="Different PAM orientations for Cas9 paired gRNAs" width="75%" style="display: block; margin: auto;" />
 
 The function `pamDistance` returns the distance between the PAM sites of
-the two gRNAs. The function `cutDistance` returns the distance between
-the cut sites of the two gRNAs, and the function `spacerDistance`
-returns the distance between the two spacer sequences of the gRNAs.
+the two gRNAs. The function `cutLength` returns the distance between the
+cut sites of the two gRNAs, and the function `spacerDistance` returns
+the distance between the two spacer sequences of the gRNAs.
+
+Most functionalities available for designing single gRNAs (`GuideSet`
+annotation functions described in [this
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9))
+work similarly for `PairedGuideSet` objects. This includes:
+
+-   `addSequenceFeatures`
+-   `addSpacerAlignments`
+-   `addGeneAnnotation`
+-   `addTssAnnotation`
+-   `addOnTargetScores`
+-   `addOffTargetScores`
+-   `addPamScores`
+-   `addSNPAnnotation`
+-   `addRestrictionEnzymes`
+-   `addCompositeScores`
+-   `addConservationScores`
+
+Each function adds an annotation to the first and second `GuideSet`
+objects stored in the `PairedGuideSet`. Let’s look at an example using
+`addSequenceFeatures`:
+
+``` r
+pairs <- addSequenceFeatures(pairs)
+```
+
+and let’s look at the `GuideSet` in the first position:
+
+``` r
+head(first(pairs), n=3)
+```
+
+    ## GuideSet object with 3 ranges and 12 metadata columns:
+    ##            seqnames    ranges strand |          protospacer            pam
+    ##               <Rle> <IRanges>  <Rle> |       <DNAStringSet> <DNAStringSet>
+    ##   spacer_1    chr12  25245201      + | GTAATAAGTACTCATGAAAA            TGG
+    ##   spacer_2    chr12  25245215      - | CCATTCTTTGATACAGATAA            AGG
+    ##   spacer_3    chr12  25245233      + | CCTTTATCTGTATCAAAGAA            TGG
+    ##             pam_site  cut_site         region          coordID percentGC
+    ##            <numeric> <numeric>    <character>      <character> <numeric>
+    ##   spacer_1  25245201  25245198 upstreamTarget chr12_25245201_+        25
+    ##   spacer_2  25245215  25245218 upstreamTarget chr12_25245215_-        30
+    ##   spacer_3  25245233  25245230 upstreamTarget chr12_25245233_+        30
+    ##                polyA     polyC     polyG     polyT startingGGGGG
+    ##            <logical> <logical> <logical> <logical>     <logical>
+    ##   spacer_1      TRUE     FALSE     FALSE     FALSE         FALSE
+    ##   spacer_2     FALSE     FALSE     FALSE     FALSE         FALSE
+    ##   spacer_3     FALSE     FALSE     FALSE     FALSE         FALSE
+    ##   -------
+    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: SpCas9
+
+This comes in handy to filter out pairs with unwanted sgRNA
+characteristics, e.g. sgRNA with polyT stretches:
+
+``` r
+good1 <- !first(pairs)$polyT
+good2 <- !second(pairs)$polyT
+pairs <- pairs[good1 & good2]
+```
+
+To select the final candidate pairs, one could filter out pairs with low
+predicted on-target activity. Let’s add the DeepHF on-target activity
+score:
+
+``` r
+pairs <- addOnTargetScores(pairs, methods="deephf")
+```
+
+    ## [addOnTargetScores] Adding deephf scores.
+
+    ## snapshotDate(): 2022-04-26
+
+    ## see ?crisprScoreData and browseVignettes('crisprScoreData') for documentation
+
+    ## loading from cache
+
+and only keep pairs for which both gRNAs have a score greater than 0.5:
+
+``` r
+good1 <- first(pairs)$score_deephf>=0.5
+good2 <- second(pairs)$score_deephf>=0.5
+pairs <- pairs[good1 & good2]
+```
+
+This leaves us with 2 candidate pairs:
+
+``` r
+pairs
+```
+
+    ## PairedGuideSet object with 2 pairs and 4 metadata columns:
+    ##                      first           second | pamOrientation pamDistance
+    ##                 <GuideSet>       <GuideSet> |    <character>   <numeric>
+    ##   pair_14 chr12:25245239:- chr12:25245472:- |            rev         233
+    ##   pair_19 chr12:25245239:- chr12:25245475:- |            rev         236
+    ##           spacerDistance cutLength
+    ##                <integer> <numeric>
+    ##   pair_14            214       233
+    ##   pair_19            217       236
+
+One can get the spacer sequences using the `spacers` accessor function
+as usual:
+
+``` r
+spacers(pairs)
+```
+
+    ## DataFrame with 2 rows and 2 columns
+    ##                  first               second
+    ##         <DNAStringSet>       <DNAStringSet>
+    ## 1 AATATGCATATTACTGGTGC TTTGTATTAAAAGGTACTGG
+    ## 2 AATATGCATATTACTGGTGC GAGTTTGTATTAAAAGGTAC
+
+# Use cases
+
+## Double nicking with CRISPR/Cas9
+
+Discussed in (Ran et al. et al. 2013)
+
+## Dual-promoter systems
+
+Discussed in (Han et al. 2017)
+
+## Multiplexing gRNAs with arrayed spacers (enAsCas12a)
+
+Discussed in (DeWeirdt et al. et al. 2021)
+
+## Nanopore Cas9-targeted sequencing (nCATS)
+
+Discussed in (Han et al. 2017)
 
 # Session Info
 
@@ -301,65 +448,65 @@ sessionInfo()
     ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.64.0                  
-    ##  [3] rtracklayer_1.55.4                Biostrings_2.64.0                
-    ##  [5] XVector_0.35.0                    GenomicRanges_1.48.0             
-    ##  [7] GenomeInfoDb_1.32.2               IRanges_2.30.0                   
-    ##  [9] S4Vectors_0.33.11                 BiocGenerics_0.42.0              
-    ## [11] crisprDesignData_0.99.14          crisprDesign_0.99.124            
-    ## [13] crisprBase_1.1.5                 
+    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.3.5              
+    ##  [3] AnnotationHub_3.3.9               BiocFileCache_2.3.4              
+    ##  [5] dbplyr_2.1.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
+    ##  [7] BSgenome_1.64.0                   rtracklayer_1.55.4               
+    ##  [9] Biostrings_2.64.0                 XVector_0.35.0                   
+    ## [11] GenomicRanges_1.48.0              GenomeInfoDb_1.32.2              
+    ## [13] IRanges_2.30.0                    S4Vectors_0.33.11                
+    ## [15] BiocGenerics_0.42.0               crisprDesignData_0.99.14         
+    ## [17] crisprDesign_0.99.126             crisprBase_1.1.5                 
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] bitops_1.0-7                  matrixStats_0.61.0           
-    ##   [3] bit64_4.0.5                   filelock_1.0.2               
-    ##   [5] progress_1.2.2                httr_1.4.2                   
-    ##   [7] tools_4.2.0                   utf8_1.2.2                   
-    ##   [9] R6_2.5.1                      DBI_1.1.2                    
-    ##  [11] tidyselect_1.1.2              prettyunits_1.1.1            
-    ##  [13] bit_4.0.4                     curl_4.3.2                   
-    ##  [15] compiler_4.2.0                crisprBowtie_1.1.1           
-    ##  [17] cli_3.3.0                     Biobase_2.55.0               
-    ##  [19] basilisk.utils_1.9.1          crisprScoreData_1.1.3        
-    ##  [21] xml2_1.3.3                    DelayedArray_0.21.2          
-    ##  [23] randomForest_4.7-1            readr_2.1.2                  
-    ##  [25] rappdirs_0.3.3                stringr_1.4.0                
-    ##  [27] digest_0.6.29                 Rsamtools_2.11.0             
-    ##  [29] rmarkdown_2.13                crisprScore_1.1.13           
-    ##  [31] basilisk_1.9.2                pkgconfig_2.0.3              
-    ##  [33] htmltools_0.5.2               MatrixGenerics_1.7.0         
-    ##  [35] highr_0.9                     dbplyr_2.1.1                 
-    ##  [37] fastmap_1.1.0                 rlang_1.0.4                  
-    ##  [39] rstudioapi_0.13               RSQLite_2.2.12               
-    ##  [41] shiny_1.7.1                   BiocIO_1.5.0                 
-    ##  [43] generics_0.1.2                jsonlite_1.8.0               
-    ##  [45] BiocParallel_1.29.18          dplyr_1.0.8                  
-    ##  [47] VariantAnnotation_1.41.3      RCurl_1.98-1.6               
-    ##  [49] magrittr_2.0.2                GenomeInfoDbData_1.2.7       
-    ##  [51] Matrix_1.4-0                  Rcpp_1.0.8.3                 
-    ##  [53] fansi_1.0.2                   reticulate_1.25              
-    ##  [55] Rbowtie_1.36.0                lifecycle_1.0.1              
-    ##  [57] stringi_1.7.6                 yaml_2.3.5                   
-    ##  [59] SummarizedExperiment_1.25.3   zlibbioc_1.41.0              
-    ##  [61] BiocFileCache_2.3.4           AnnotationHub_3.3.9          
-    ##  [63] grid_4.2.0                    blob_1.2.2                   
-    ##  [65] promises_1.2.0.1              parallel_4.2.0               
-    ##  [67] ExperimentHub_2.3.5           crayon_1.5.0                 
-    ##  [69] dir.expiry_1.3.0              lattice_0.20-45              
-    ##  [71] GenomicFeatures_1.47.13       hms_1.1.1                    
-    ##  [73] KEGGREST_1.35.0               knitr_1.37                   
-    ##  [75] pillar_1.7.0                  rjson_0.2.21                 
-    ##  [77] biomaRt_2.51.3                BiocVersion_3.15.0           
-    ##  [79] XML_3.99-0.9                  glue_1.6.2                   
-    ##  [81] evaluate_0.15                 BiocManager_1.30.16          
-    ##  [83] httpuv_1.6.5                  png_0.1-7                    
-    ##  [85] vctrs_0.3.8                   tzdb_0.2.0                   
-    ##  [87] purrr_0.3.4                   assertthat_0.2.1             
-    ##  [89] cachem_1.0.6                  xfun_0.30                    
-    ##  [91] mime_0.12                     xtable_1.8-4                 
-    ##  [93] restfulr_0.0.13               later_1.3.0                  
-    ##  [95] tibble_3.1.6                  GenomicAlignments_1.31.2     
-    ##  [97] AnnotationDbi_1.57.1          memoise_2.0.1                
-    ##  [99] interactiveDisplayBase_1.33.0 ellipsis_0.3.2
+    ##  [1] bitops_1.0-7                  matrixStats_0.61.0           
+    ##  [3] bit64_4.0.5                   filelock_1.0.2               
+    ##  [5] progress_1.2.2                httr_1.4.2                   
+    ##  [7] tools_4.2.0                   utf8_1.2.2                   
+    ##  [9] R6_2.5.1                      DBI_1.1.2                    
+    ## [11] withr_2.5.0                   tidyselect_1.1.2             
+    ## [13] prettyunits_1.1.1             bit_4.0.4                    
+    ## [15] curl_4.3.2                    compiler_4.2.0               
+    ## [17] crisprBowtie_1.1.1            cli_3.3.0                    
+    ## [19] Biobase_2.55.0                basilisk.utils_1.9.1         
+    ## [21] xml2_1.3.3                    DelayedArray_0.21.2          
+    ## [23] randomForest_4.7-1            readr_2.1.2                  
+    ## [25] rappdirs_0.3.3                stringr_1.4.0                
+    ## [27] digest_0.6.29                 Rsamtools_2.11.0             
+    ## [29] rmarkdown_2.13                crisprScore_1.1.13           
+    ## [31] basilisk_1.9.2                pkgconfig_2.0.3              
+    ## [33] htmltools_0.5.2               MatrixGenerics_1.7.0         
+    ## [35] highr_0.9                     fastmap_1.1.0                
+    ## [37] rlang_1.0.4                   rstudioapi_0.13              
+    ## [39] RSQLite_2.2.12                shiny_1.7.1                  
+    ## [41] BiocIO_1.5.0                  generics_0.1.2               
+    ## [43] jsonlite_1.8.0                BiocParallel_1.29.18         
+    ## [45] dplyr_1.0.8                   VariantAnnotation_1.41.3     
+    ## [47] RCurl_1.98-1.6                magrittr_2.0.2               
+    ## [49] GenomeInfoDbData_1.2.7        Matrix_1.4-0                 
+    ## [51] Rcpp_1.0.8.3                  fansi_1.0.2                  
+    ## [53] reticulate_1.25               Rbowtie_1.36.0               
+    ## [55] lifecycle_1.0.1               stringi_1.7.6                
+    ## [57] yaml_2.3.5                    SummarizedExperiment_1.25.3  
+    ## [59] zlibbioc_1.41.0               grid_4.2.0                   
+    ## [61] blob_1.2.2                    promises_1.2.0.1             
+    ## [63] parallel_4.2.0                crayon_1.5.0                 
+    ## [65] dir.expiry_1.3.0              lattice_0.20-45              
+    ## [67] GenomicFeatures_1.47.13       hms_1.1.1                    
+    ## [69] KEGGREST_1.35.0               knitr_1.37                   
+    ## [71] pillar_1.7.0                  rjson_0.2.21                 
+    ## [73] biomaRt_2.51.3                BiocVersion_3.15.0           
+    ## [75] XML_3.99-0.9                  glue_1.6.2                   
+    ## [77] evaluate_0.15                 BiocManager_1.30.16          
+    ## [79] httpuv_1.6.5                  png_0.1-7                    
+    ## [81] vctrs_0.3.8                   tzdb_0.2.0                   
+    ## [83] purrr_0.3.4                   assertthat_0.2.1             
+    ## [85] cachem_1.0.6                  xfun_0.30                    
+    ## [87] mime_0.12                     xtable_1.8-4                 
+    ## [89] restfulr_0.0.13               later_1.3.0                  
+    ## [91] tibble_3.1.6                  GenomicAlignments_1.31.2     
+    ## [93] AnnotationDbi_1.57.1          memoise_2.0.1                
+    ## [95] interactiveDisplayBase_1.33.0 ellipsis_0.3.2
 
 # References
 
