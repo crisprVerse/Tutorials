@@ -249,6 +249,41 @@ One can get the spacer sequences using the `spacers` accessor function as usual:
 spacers(pairs)
 ```
 
+Finally, one might want to check for off-targets. Let's specify the path of the bowtie index for the human reference genome:
+
+```{r}
+bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
+```
+
+For instructions on how to build a Bowtie index from a given reference genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) or the [crisprBowtie page](https://github.com/crisprVerse/crisprBowtie). 
+
+We are now ready to search for off-targets with up to 3 mismatches:
+
+
+```{r}
+pairs <- addSpacerAlignments(pairs,
+                             txObject=txdb_human,
+                             aligner_index=bowtie_index,
+                             bsgenome=bsgenome,
+                             n_mismatches=3)
+```
+
+Let's only keep pairs that have no off-targets in other coding sequences:
+
+
+```{r}
+good1 <- first(pairs)$n1_c==0 & first(pairs)$n2_c==0 & first(pairs)$n3_c==0
+good2 <- second(pairs)$n1_c==0 & second(pairs)$n2_c==0 & second(pairs)$n3_c==0
+pairs <- pairs[good1 & good2]
+pairs
+```
+
+
+
+
+
+
+
 # Use cases
 
 ## Double nicking with CRISPR/Cas9 
