@@ -6,16 +6,8 @@ Using crisprDesign to design paired gRNAs
     -   [Installation](#installation)
     -   [Terminology](#terminology)
     -   [Paired gRNA design overview](#paired-grna-design-overview)
--   [A simple example: paired gRNAs flanking an
-    exon](#a-simple-example-paired-grnas-flanking-an-exon)
--   [Use cases](#use-cases)
-    -   [Double nicking with
-        CRISPR/Cas9](#double-nicking-with-crisprcas9)
-    -   [Dual-promoter systems](#dual-promoter-systems)
-    -   [Multiplexing gRNAs with arrayed spacers
-        (enAsCas12a)](#multiplexing-grnas-with-arrayed-spacers-enascas12a)
-    -   [Nanopore Cas9-targeted sequencing
-        (nCATS)](#nanopore-cas9-targeted-sequencing-ncats)
+-   [A simple example: deleting a KRAS exon with a pair of
+    gRNAs](#a-simple-example-deleting-a-kras-exon-with-a-pair-of-grnas)
 -   [Session Info](#session-info)
 -   [References](#references)
 
@@ -32,8 +24,8 @@ In this tutorial, we illustrate the main functionalities of
 
 ## Installation
 
-First, we install the necessary packages for this tutorial from
-Bioconductor using the following commands:
+First, we install the necessary packages from Bioconductor using the
+following commands:
 
 ``` r
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -59,24 +51,27 @@ to get familiar with the terminology used throughout this tutorial.
 
 ## Paired gRNA design overview
 
-There is a number of applications that require the design of pairs of
-gRNAs. Here is a list of cases that will be covered in this tutorial:
+There are several applications that require the design of gRNA pairs:
 
 1.  Double nicking with CRISPR/Cas9 (Ran et al. et al. 2013)
 2.  Dual-promoter screening systems (Han et al. 2017)
-3.  Multiplexing gRNAs with arrayed spacers (enAsCas12a) (DeWeirdt et
-    al. et al. 2021)
+3.  Multiplexing gRNAs with enAsCas12a (DeWeirdt et al. et al. 2021)
 4.  Nanopore Cas9-targeted sequencing (nCATS) (Gilpatrick et al. 2020)
 
-Before we dive into the different applications, we will describe a
-general use case to go over the main paired gRNA design features.
+The `crisprDesign` package provides an infrastructure to store an
+annotate gRNA pairs via the `PaireGuideSet` object, which behaves very
+similarly to the `GuideSet` object used for unpaired gRNAs. We designed
+the functionalities for paired gRNAs with the aforementioned
+applications in mind.
 
-# A simple example: paired gRNAs flanking an exon
+In this tutorial, we will go through a simple example to illustrate the
+general concept behind paired gRNA design with `crisprDesign`.
 
-To illustrate the general concept behind paired gRNA design, we will
-show here how to design pairs of gRNAs flanking the second exon of the
-canonical transcript (ENST00000311936) of the human gene KRAS
-(ENSG00000133703).
+# A simple example: deleting a KRAS exon with a pair of gRNAs
+
+We will show here how to design an optimal pair of Cas9 gRNAs flanking
+the second exon of the human gene KRAS (ENSG00000133703), with the goal
+of creating a deletion that will excise the exon.
 
 We first start by loading the necessary packages:
 
@@ -87,8 +82,8 @@ library(crisprBase)
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
-We will be designing gRNAs for the SpCas9 nuclease. We load the `SpCas9`
-nuclease object from the `crisprBase` package (see the `crisprBase`
+We will be designing gRNAs for the SpCas9 nuclease, which can be loaded
+from We load the `crisprBase` package (see the `crisprBase`
 [vignette](https://github.com/crisprVerse/crisprBase) for instructions
 on how to create or load alternative nucleases):
 
@@ -96,15 +91,16 @@ on how to create or load alternative nucleases):
 data(SpCas9, package="crisprBase")
 ```
 
-Let’s get the genomic coordinates of the second exon. Let’s first obtain
+Let’s get the genomic coordinates of the second exon. First, we obtain
 from `crisprDesignData` a `GRangesList` object that defines the genomic
-coordinates (in hg38 coordinates) of coding genes in the human genome:
+coordinates (hg38 genome) of human protein-coding:
 
 ``` r
 data(txdb_human, package="crisprDesignData")
 ```
 
-We can get the exon coodinates using the function `queryTxObject`:
+We get the exonic coordinates of the canonical transcript
+ENST00000311936 using the function `queryTxObject` from `crisprDesign`:
 
 ``` r
 exons <- queryTxObject(txObject=txdb_human,
@@ -146,7 +142,7 @@ exons
     ##   -------
     ##   seqinfo: 25 sequences (1 circular) from hg38 genome
 
-and we select the second exon:
+Finally, elect the second exon:
 
 ``` r
 exon <- exons[exons$exon_rank==2]
@@ -173,7 +169,8 @@ exon
 The exon is on chr12, and spans the region 25245274-25245395 (122
 nucleotides in length). We aim to design gRNAs pairs for which one gRNA
 is located upstream of the exon, and another located downstream of the
-exon. Let’s define those regions to be 500 nucleotides on each side:
+exon. To be able to find good gRNA caniddate, let’s define those regions
+to have 100 nucleotides on each side:
 
 ``` r
 library(IRanges)
@@ -183,13 +180,15 @@ names(regionUpstream) <- "upstreamTarget"
 names(regionDownstream) <- "downstreamTarget"
 ```
 
-We specify the BSgenome for hg38 coordinates
+Similar to the `findSpacers` function in `crisprDesign`, we will need to
+specify a BSgenome package containing the reference genome DNA
+sequences:
 
 ``` r
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 ```
 
-and we are now ready to find all spacer pairs:
+We are now ready to find all candidate gRNA pairs:
 
 ``` r
 pairs <- findSpacerPairs(x1=regionUpstream,
@@ -201,7 +200,7 @@ pairs <- findSpacerPairs(x1=regionUpstream,
 The `x1` and `x2` arguments specify the genomic regions in which gRNAs
 at position 1 and position 2 should be targeting, respectively. The
 function finds all possible pair combinations between spacers found in
-the region specified by `x1` and spacers found in the region specified
+the region specified by `x1` and spacers found in the region s pecified
 by `x2`. Let’ first name our pairs:
 
 ``` r
@@ -285,8 +284,11 @@ and takes 4 different values: `in` (for PAM-in configuration), `out`
 (for PAM-out configuration), `fwd` (both gRNAs target the forward
 strand), and `rev` (both gRNAs target the reverse strand); see figure
 below for an illustration of the PAM orientations for the SpCas9
-nuclease. The importance of the PAM orientation is application-specific,
-and will be discussed in the relevant sections below.
+nuclease. The importance of the PAM orientation is application-specific.
+For Nanopore Cas9-targeted sequencing, PAM-in configuration is
+preferred. For double nicking with CRISPR/Cas9, PAM-out configuration is
+preferred. For applications using a dual-promoter system, no
+configuration is preferred.
 
 <img src="./figures/paired_simplified.svg" title="Different PAM orientations for Cas9 paired gRNAs" alt="Different PAM orientations for Cas9 paired gRNAs" width="75%" style="display: block; margin: auto;" />
 
@@ -355,9 +357,9 @@ good2 <- !second(pairs)$polyT
 pairs <- pairs[good1 & good2]
 ```
 
-To select the final candidate pairs, one could filter out pairs with low
-predicted on-target activity. Let’s add the DeepHF on-target activity
-score:
+To select the final candidate pairs to excise the KRAS exon, we will
+filter out pairs with low predicted on-target activity using the DeepHF
+on-target activity score. We first add the score:
 
 ``` r
 pairs <- addOnTargetScores(pairs, methods="deephf")
@@ -395,21 +397,8 @@ pairs
     ##   pair_14            214       233
     ##   pair_19            217       236
 
-One can get the spacer sequences using the `spacers` accessor function
-as usual:
-
-``` r
-spacers(pairs)
-```
-
-    ## DataFrame with 2 rows and 2 columns
-    ##                  first               second
-    ##         <DNAStringSet>       <DNAStringSet>
-    ## 1 AATATGCATATTACTGGTGC TTTGTATTAAAAGGTACTGG
-    ## 2 AATATGCATATTACTGGTGC GAGTTTGTATTAAAAGGTAC
-
-Finally, one might want to check for off-targets. Let’s specify the path
-of the bowtie index for the human reference genome:
+Finally, let’s check for off-targets. We need to specify the path of the
+bowtie index that was generated from the human reference genome:
 
 ``` r
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
@@ -435,8 +424,8 @@ pairs <- addSpacerAlignments(pairs,
     ## [runCrisprBowtie] Using BSgenome.Hsapiens.UCSC.hg38 
     ## [runCrisprBowtie] Searching for SpCas9 protospacers
 
-Let’s only keep pairs that have no off-targets in other coding
-sequences:
+We are in luck, none of the spacer sequences have off-target in coding
+sequences of other genes:
 
 ``` r
 good1 <- first(pairs)$n1_c==0 & first(pairs)$n2_c==0 & first(pairs)$n3_c==0
@@ -455,23 +444,18 @@ pairs
     ##   pair_14            214       233
     ##   pair_19            217       236
 
-# Use cases
+One can get the spacer sequences using the `spacers` accessor function
+as usual:
 
-## Double nicking with CRISPR/Cas9
+``` r
+spacers(pairs)
+```
 
-Discussed in (Ran et al. et al. 2013)
-
-## Dual-promoter systems
-
-Discussed in (Han et al. 2017)
-
-## Multiplexing gRNAs with arrayed spacers (enAsCas12a)
-
-Discussed in (DeWeirdt et al. et al. 2021)
-
-## Nanopore Cas9-targeted sequencing (nCATS)
-
-Discussed in (Han et al. 2017)
+    ## DataFrame with 2 rows and 2 columns
+    ##                  first               second
+    ##         <DNAStringSet>       <DNAStringSet>
+    ## 1 AATATGCATATTACTGGTGC TTTGTATTAAAAGGTACTGG
+    ## 2 AATATGCATATTACTGGTGC GAGTTTGTATTAAAAGGTAC
 
 # Session Info
 
