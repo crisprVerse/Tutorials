@@ -170,10 +170,22 @@ genome:
 data <- data[!is.na(data$pam_site),,drop=FALSE]
 ```
 
+Finally, we create unique ids to identify the spacer sequences:
+
+``` r
+ids <- paste0("gRNA_", seq_len(nrow(data)))
+head(ids)
+```
+
+    ## [1] "gRNA_1" "gRNA_2" "gRNA_3" "gRNA_4" "gRNA_5" "gRNA_6"
+
+While it is not necessary, we will unique names to the spacers:
+
 Ready to build the object with the constructor function in crisprDesign:
 
 ``` r
-gs <- GuideSet(protospacers=data$spacer_20mer,
+gs <- GuideSet(ids=ids,
+               protospacers=data$spacer_20mer,
                pams=data$pam,
                pam_site=data$pam_site,
                seqnames=data$chr,
@@ -181,12 +193,6 @@ gs <- GuideSet(protospacers=data$spacer_20mer,
                CrisprNuclease=crisprNuclease,
                bsgenome=bsgenome)
 gs$gene_symbol <- data$gene_symbol
-```
-
-While it is not necessary, we will unique names to the spacers:
-
-``` r
-names(gs) <- paste0("gRNA_", seq_along(gs))
 ```
 
 The `GuideSet` object, and `crisprDesign`, provide rich functionalities
@@ -235,27 +241,23 @@ aln <- gs$alignments[[1]]
 aln
 ```
 
-    ## GRanges object with 3 ranges and 14 metadata columns:
-    ##            seqnames    ranges strand |               spacer
-    ##               <Rle> <IRanges>  <Rle> |       <DNAStringSet>
-    ##     gRNA_1     chr8  45023166      - | GGGCAGTGTTTCAAAATCCA
-    ##    gRNA_97     chr9 104311568      + | GGCAAAACAGAATAGGAGAG
-    ##   gRNA_218     chr1 113261571      + | GAACCTAGATTTTGAGACAG
-    ##                     protospacer            pam  pam_site n_mismatches canonical
-    ##                  <DNAStringSet> <DNAStringSet> <numeric>    <integer> <logical>
-    ##     gRNA_1 GGGCAGTGTTTCAAAATCCA            AGG  45023166            0      TRUE
-    ##    gRNA_97 GGCAAAACAGAATATGAGTG            GGG 104311568            2      TRUE
-    ##   gRNA_218 GAACCTAACTTTTGAGACAG            AGG 113261571            2      TRUE
-    ##             cut_site         cds    fiveUTRs   threeUTRs       exons
-    ##            <numeric> <character> <character> <character> <character>
-    ##     gRNA_1  45023169        Fat1        <NA>        <NA>        Fat1
-    ##    gRNA_97 104311565        <NA>        <NA>        <NA>        <NA>
-    ##   gRNA_218 113261568        <NA>        <NA>        <NA>        <NA>
-    ##                introns  intergenic intergenic_distance
-    ##            <character> <character>           <integer>
-    ##     gRNA_1        <NA>        <NA>                <NA>
-    ##    gRNA_97        Acpp        <NA>                <NA>
-    ##   gRNA_218        <NA>     Gm28189               27771
+    ## GRanges object with 2 ranges and 14 metadata columns:
+    ##          seqnames    ranges strand |               spacer          protospacer
+    ##             <Rle> <IRanges>  <Rle> |       <DNAStringSet>       <DNAStringSet>
+    ##   gRNA_1     chr8  45023166      - | GGGCAGTGTTTCAAAATCCA GGGCAGTGTTTCAAAATCCA
+    ##   gRNA_1    chr12  80656576      - | GGGCAGTGTTTCAAAATCCA AGGCAGGGTTTCAAAATCCA
+    ##                     pam  pam_site n_mismatches canonical  cut_site         cds
+    ##          <DNAStringSet> <numeric>    <integer> <logical> <numeric> <character>
+    ##   gRNA_1            AGG  45023166            0      TRUE  45023169        Fat1
+    ##   gRNA_1            AGG  80656576            2      TRUE  80656579        <NA>
+    ##             fiveUTRs   threeUTRs       exons     introns  intergenic
+    ##          <character> <character> <character> <character> <character>
+    ##   gRNA_1        <NA>        <NA>        Fat1        <NA>        <NA>
+    ##   gRNA_1        <NA>        <NA>        <NA>     Slc39a9        <NA>
+    ##          intergenic_distance
+    ##                    <integer>
+    ##   gRNA_1                <NA>
+    ##   gRNA_1                <NA>
     ##   -------
     ##   seqinfo: 22 sequences (1 circular) from mm10 genome
 
@@ -291,18 +293,18 @@ sessionInfo()
     ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] crisprDesignData_0.99.2            BSgenome.Mmusculus.UCSC.mm10_1.4.3
-    ##  [3] BSgenome_1.63.5                    rtracklayer_1.55.4                
-    ##  [5] Biostrings_2.63.2                  XVector_0.35.0                    
-    ##  [7] GenomicRanges_1.47.6               GenomeInfoDb_1.31.6               
-    ##  [9] IRanges_2.29.1                     S4Vectors_0.33.11                 
-    ## [11] BiocGenerics_0.41.2                readxl_1.3.1                      
-    ## [13] crisprBowtie_1.1.1                 crisprDesign_0.99.93              
-    ## [15] crisprBase_1.1.2                  
+    ##  [1] crisprDesignData_0.99.14           BSgenome.Mmusculus.UCSC.mm10_1.4.3
+    ##  [3] BSgenome_1.64.0                    rtracklayer_1.55.4                
+    ##  [5] Biostrings_2.64.0                  XVector_0.35.0                    
+    ##  [7] GenomicRanges_1.48.0               GenomeInfoDb_1.32.2               
+    ##  [9] IRanges_2.30.0                     S4Vectors_0.33.11                 
+    ## [11] BiocGenerics_0.42.0                readxl_1.3.1                      
+    ## [13] crisprBowtie_1.1.1                 crisprDesign_0.99.127             
+    ## [15] crisprBase_1.1.5                  
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] rjson_0.2.21                  ellipsis_0.3.2               
-    ##   [3] Rbowtie_1.35.0                rstudioapi_0.13              
+    ##   [3] Rbowtie_1.36.0                rstudioapi_0.13              
     ##   [5] bit64_4.0.5                   interactiveDisplayBase_1.33.0
     ##   [7] AnnotationDbi_1.57.1          fansi_1.0.2                  
     ##   [9] xml2_1.3.3                    cachem_1.0.6                 
@@ -311,7 +313,7 @@ sessionInfo()
     ##  [15] png_0.1-7                     shiny_1.7.1                  
     ##  [17] BiocManager_1.30.16           readr_2.1.2                  
     ##  [19] compiler_4.2.0                httr_1.4.2                   
-    ##  [21] basilisk_1.9.1                assertthat_0.2.1             
+    ##  [21] basilisk_1.9.2                assertthat_0.2.1             
     ##  [23] Matrix_1.4-0                  fastmap_1.1.0                
     ##  [25] cli_3.3.0                     later_1.3.0                  
     ##  [27] htmltools_0.5.2               prettyunits_1.1.1            
@@ -320,23 +322,23 @@ sessionInfo()
     ##  [33] rappdirs_0.3.3                Rcpp_1.0.8.3                 
     ##  [35] Biobase_2.55.0                cellranger_1.1.0             
     ##  [37] vctrs_0.3.8                   ExperimentHub_2.3.5          
-    ##  [39] crisprBwa_1.1.2               crisprScore_1.1.6            
+    ##  [39] crisprBwa_1.1.2               crisprScore_1.1.13           
     ##  [41] xfun_0.30                     stringr_1.4.0                
     ##  [43] mime_0.12                     lifecycle_1.0.1              
     ##  [45] restfulr_0.0.13               XML_3.99-0.9                 
     ##  [47] AnnotationHub_3.3.9           zlibbioc_1.41.0              
-    ##  [49] basilisk.utils_1.5.0          vroom_1.5.7                  
+    ##  [49] basilisk.utils_1.9.1          vroom_1.5.7                  
     ##  [51] VariantAnnotation_1.41.3      hms_1.1.1                    
     ##  [53] promises_1.2.0.1              MatrixGenerics_1.7.0         
     ##  [55] parallel_4.2.0                SummarizedExperiment_1.25.3  
     ##  [57] yaml_2.3.5                    curl_4.3.2                   
-    ##  [59] memoise_2.0.1                 reticulate_1.24              
+    ##  [59] memoise_2.0.1                 reticulate_1.25              
     ##  [61] biomaRt_2.51.3                stringi_1.7.6                
     ##  [63] RSQLite_2.2.12                BiocVersion_3.15.0           
     ##  [65] BiocIO_1.5.0                  randomForest_4.7-1           
     ##  [67] crisprScoreData_1.1.3         GenomicFeatures_1.47.13      
     ##  [69] filelock_1.0.2                BiocParallel_1.29.18         
-    ##  [71] rlang_1.0.2                   pkgconfig_2.0.3              
+    ##  [71] rlang_1.0.4                   pkgconfig_2.0.3              
     ##  [73] matrixStats_0.61.0            bitops_1.0-7                 
     ##  [75] evaluate_0.15                 lattice_0.20-45              
     ##  [77] purrr_0.3.4                   GenomicAlignments_1.31.2     

@@ -130,10 +130,25 @@ We need to filter out first guides that don't have a match to the genome:
 data <- data[!is.na(data$pam_site),,drop=FALSE]
 ```
 
+
+Finally, we create unique ids to identify the spacer sequences:
+
+```{r}
+ids <- paste0("gRNA_", seq_len(nrow(data)))
+head(ids)
+```
+
+
+
+While it is not necessary, we will unique names to the spacers:
+
+
+
 Ready to build the object with the constructor function in crisprDesign:
 
 ```{r}
-gs <- GuideSet(protospacers=data$spacer_20mer,
+gs <- GuideSet(ids=ids,
+               protospacers=data$spacer_20mer,
                pams=data$pam,
                pam_site=data$pam_site,
                seqnames=data$chr,
@@ -143,11 +158,7 @@ gs <- GuideSet(protospacers=data$spacer_20mer,
 gs$gene_symbol <- data$gene_symbol
 ```
 
-While it is not necessary, we will unique names to the spacers:
 
-```{r}
-names(gs) <- paste0("gRNA_", seq_along(gs))
-```
 
 The `GuideSet` object, and `crisprDesign`, provide rich functionalities to annotate and manipulate gRNAs; see the main `crisprDesign` vignette for more details. For the rest of this vignette, we only focus on characterizing the off-targets.
 
