@@ -1,0 +1,135 @@
+---
+title: "Using crisprDesign to design gRNAs with minor and major alleles"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r, echo=FALSE, results="hide"}
+options("knitr.graphics.auto_pdf"=TRUE)
+```
+
+Authors: Jean-Philippe Fortin, Luke Hoberecht
+
+Date: `r format(Sys.time(), '%d %B, %Y')`
+
+
+# Introduction
+
+Genomic variants such as single nucleotide polymorphisms (SNPs) can be problematic in guide RNA (gRNA) design, as different alleles can result in unintended gRNA:DNA mismatches for on-targets that reduce gRNA efficacy. To circumvent this, it is advisable to generally avoid targeting sequences that contain variants. However, this may not always be possible, due to a small target window and/or few target options, or desirable, if, for example, a CRISPR application intends to target a pathogenic variant.
+
+Functions in `crisprDesign` are well equipped to handle these cases. gRNAs overlapping SNPs can be identified with the `addSNPAnnotation` function, as documented in the [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) tutorial. Should the user wish to target region despite (or because of) the presence of variants, the user only needs to take care in the choice of `BSgenome` when constructing the `GuideSet` (an alternative option is to supply a custom target sequence; see the [Working with a custom sequence](https://github.com/crisprVerse/Tutorials/tree/master/Design_Custom_Sequence) tutorial for more information).
+
+This tutorial covers use cases for `BSgenome` objects that store variants of the reference human genome (hg38) injected with major and minor alleles. It assumes the reader is familiar with constructing and using gene annotation objects (see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial) and `GuideSet` objects (see the [CRISPRko design with Cas9]( https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) tutorial) so that the content may focus on the utility of the `BSgenome` variants discussed herein. Please consult the applicable tutorials if necessary.
+
+Finally, it goes without saying that the user should be knowledgeable of the sequence(s), including possible variations in such, he or she is designing gRNAs for.
+
+
+# Installation
+
+This tutorial used several packages from Bioconductor that can be
+installed using the following commands:
+
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor")
+```
+
+and the following package from GitHub:
+
+```{r, eval=FALSE}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
+```
+
+
+# Terminology
+
+See the [CRISPRko design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar 
+with the terminology used throughout this tutorial.
+
+
+# Use cases with major and minor alleles
+
+The following examples use the reference, and variations of the reference, genome sequence for Homo sapiens (UCSC version hg38, based on GRCh38.p12). For documentation on each `BSgenome` object, pass the object to `help()` or preceed it with `?`, as shown below:
+
+```{r, eval=FALSE}
+help(BSgenome.Hsapiens.UCSC.hg38)
+
+## or
+
+?BSgenome.Hsapiens.UCSC.hg38
+```
+
+
+## Loading packages
+
+We first load the necessary packages for this tutorial:
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+library(crisprBase)
+library(crisprDesign)
+library(crisprDesignData)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major)
+library(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor)
+```
+
+
+## Designing gRNAs for human (hg38) with injected major alleles
+
+It is worth noting that the human reference genome sequence (GRCh38.p12), as stored in `BSgenome.Hsapiens.UCSC.hg38` does not give the major allele (i.e. most common allele) at all variant locations. For example, in the CDS of the human SMC3 gene is a SNP (rs2419565) whose global reference and alternate allele frequencies are given in the table below (the full table can be found [here](https://www.ncbi.nlm.nih.gov/snp/rs2419565)):
+
+| Population | Group | Sample Size | Ref Allele | Alt Allele |
+| --- | --- | --- | --- | --- |
+| Total | Global | 70004 | A=0.00577 | G=0.99423,T=0.00000 |
+
+Designing gRNAs targeting the CDS of SMC3 with the SpCas9 nuclease returns one gRNA that overlaps this SNP. Below, we briefly construct a pair of `GuideSet`s using the reference `BSgenome` and the same `BSgenome` injected with major alleles:
+
+```{r, collapse=TRUE, results='markup'}
+smc3 <- queryTxObject(txdb_human,
+                      featureType="cds",
+                      queryColumn="gene_symbol",
+                      queryValue="SMC3")
+gs_reference <- findSpacers(smc3,
+                            crisprNuclease=SpCas9,
+                            bsgenome=BSgenome.Hsapiens.UCSC.hg38)
+gs_major <- findSpacers(smc3,
+                        crisprNuclease=SpCas9,
+                        bsgenome=BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major)
+# compare protospacers
+protospacers(gs_reference["spacer_199"])
+protospacers(gs_major["spacer_199"])
+```
+
+The variant occurs in the seed sequence of this gRNA, 5 bases upstream of the `pam_site`, so a gRNA:DNA mismatch at this location is likely detrimental to its efficacy. Also, as this major allele occurs at >99% frequency, it may be more beneficial to design gRNAs in this example using `BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major`.
+
+
+## Designing gRNAs for human (hg38) with injected minor alleles
+
+
+check for differences between reference and minor in promoter regions
+check genes affected, any with pathological variations?
+
+
+
+case for chr12:25209843(-), only SNP in KRAS primary tx cds...
+
+
+
+
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+
