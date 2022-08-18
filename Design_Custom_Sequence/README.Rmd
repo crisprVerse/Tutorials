@@ -1,0 +1,231 @@
+---
+title: "Using crisprDesign to design gRNAs for custom sequences"
+output: 
+  github_document:
+    toc: true
+bibliography: references.bib
+---
+
+```{r, echo=FALSE, results="hide"}
+options("knitr.graphics.auto_pdf"=TRUE)
+```
+
+Authors: Jean-Philippe Fortin, Luke Hoberecht
+
+Date: `r format(Sys.time(), '%d %B, %Y')`
+
+
+# Introduction
+
+In this tutorial, we illustrate the main functionalities of  `crisprDesign` 
+for designing gRNAs for custom sequences. To design gRNAs for targets
+located in an organism genome, see the [introductory CRISPRko tutorial ](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9). 
+
+
+# Getting started
+
+## Installation 
+
+First, we install the necessary packages from Bioconductor
+using the following commands:
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("crisprBase")
+BiocManager::install("crisprDesign")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+```
+
+as well as the data package `crisprDesignData` from GitHub:
+
+```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
+install.packages("devtools")
+devtools::install_github("Jfortin1/crisprDesignData")
+```
+
+# Use case: designing gRNAs against EGFP
+
+Suppose we are engineering a human cell line to express the
+enhanced green fluorescent protein (EGFP) marker, and that we want
+to design gRNAs that knockout EGFP as experimental controls.
+Such control gRNAs should target EGFP with (1) high efficiency, 
+and (2) should be specific to EGFP, that is, should not target 
+the cell genome (human genome in this case). Supposed also that the
+cell line is also stably expressing SpCas9.
+
+## Loading necessary packages
+
+We first start by loading the necessary packages:
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(Biostrings)
+library(crisprBase)
+library(crisprDesign)
+library(crisprDesignData)
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+
+## Obtaining the DNA sequence 
+
+In the folder `data`, we have included a fasta file containing the DNA
+sequence of the EGFP marker. The sequence was obtained from the [SnapGene website](https://www.snapgene.com/resources/plasmid-files/?set=fluorescent_protein_genes_and_plasmids&plasmid=EGFP)
+
+
+We can read in the fasta file using the `readDNAStringSet` function from
+the package `Biostrings`:
+
+```{r}
+dna <- Biostrings::readDNAStringSet("data/egfp.fa")
+names(dna) <- "EGFP"
+dna
+```
+
+This could also be simply constructed from a regular string:
+
+```{r, eval=FALSE}
+dna <- "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA"
+dna <- DNAStringSet(dna)
+names(dna) <- "EGFP"
+```
+
+(Note that the function also accepts a simple string, which would be
+internally converted into a `DNAStringSet`). This is the custom sequence
+input that we will use to design gRNAs.
+
+## Constructing the `GuideSet` object:
+
+Next, we design all possible SpCas0 gRNAs targeting EGFP. First, we load
+the SpCas9 object from the `crisprBase` package:
+
+```{r}
+data(SpCas9, package="crisprBase")
+```
+
+and we design gRNAs using the function `findSpacers` from `crisprDesign`:
+
+```{r}
+gs <- findSpacers(dna, 
+                  crisprNuclease=SpCas9)
+head(gs)
+```
+
+The resulting output is a regular `GuideSet` object, and all functionalities
+described in the [introductory CRISPRko tutorial ](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
+can be applied here as well. 
+
+There are a few key differences to note with respect to a `GuideSet` object
+constructed using a reference genome. First, the name of the input DNA sequence
+(EGFP) is used as the chromosome name stored in the `seqnames` field. 
+Second, the `pam_site` and `cut_site` coordinates are all relative to the
+first nucleotide of the custom DNA sequence. Finally, the `GuideSet` object
+stores the input sequence, which can be accessed using the function 
+`customSequences`:
+
+```{r}
+customSequences(gs)
+```
+
+## Finding off-targets in the human genome to find gRNAs specific to EGFP
+
+
+Now that we have designed all possible gRNAs targeting EGFP, we will 
+filter out gRNAs that have on- and off-targets located in the human
+genome. We will use the bowtie aligner to find targets, so we need to
+first specify the path of a bowtie index constructed on the human genome:
+
+```{r}
+# Path of the hg38 bowtie index on my personal laptop:
+bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
+```
+
+For instructions on how to build a Bowtie index from a given reference genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) or the [crisprBowtie page](https://github.com/Jfortin1/crisprBowtie) .
+
+To annotate off-targets with genomic context, for instance to know whether 
+or not they are located in coding regions, we will also need a gene model
+object. We will use the gene model object `txdb_human` 
+from `crisprDesignData`, which contains genomic coordinates of all 
+human protein-coding genes. See the [crisprDesignData package](https://github.com/crisprVerse/crisprDesignData) for more details.
+
+```{r}
+data(txdb_human, package="crisprDesignData")
+```
+
+We are now ready to find all on- and off-targets using the 
+`addSpacerAlignments` function from `crisprDesign`:
+
+
+```{r, warning=FALSE, message=FALSE}
+gs <- addSpacerAlignments(gs,
+                          aligner="bowtie",
+                          aligner_index=bowtie_index,
+                          bsgenome=BSgenome.Hsapiens.UCSC.hg38,
+                          n_mismatches=3,
+                          txObject=txdb_human)
+gs
+```
+
+
+
+## Predicting on-target activity
+
+We also want to make sure to filter out gRNAs that are predicted to have
+poor on-target activity. To do so, we annotate gRNAs with the DeepHF
+on-target activity score:
+
+```{r}
+gs <- addOnTargetScores(gs, methods="deephf")
+```
+
+
+
+Finally, we characterize the spacer sequences using the `addSequenceFeatures`
+function from `crisprDesign`:
+
+```{r}
+gs <- addSequenceFeatures(gs)
+```
+
+## Final selection
+
+For our use case, we will only retain gRNAs that do not map to the human 
+genome (`n0=0`), don't have any 1 or 2-mismatch off-targets (`n1=0` 
+and `n2=0`), and do not have 3-mismatch off-targets located 
+in coding regions (`n3_c=0`):
+
+```{r}
+gs <- gs[gs$n0==0 & gs$n1==0 & gs$n2==0 & gs$n3_c==0]
+```
+
+We also remove gRNAs that contain polyT sequences
+
+```{r}
+gs <- gs[!gs$polyT,]
+```
+
+and only keep gRNAs that don't have extreme GC content:
+
+```{r}
+gs <- gs[gs$percentGC>=20 & gs$percentGC<=80]
+```
+
+Finally, we rank gRNAs from the highest to the lowest on-target activity score:
+
+```{r}
+gs <- gs[order(-gs$score_deephf)]
+head(gs)
+```
+
+Users can select the top gRNAs as their control gRNAs.
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+# References
+
+
