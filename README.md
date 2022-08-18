@@ -24,7 +24,7 @@
 ### Less common gRNA design workflows
 
 11. [Paired gRNA design](https://github.com/crisprVerse/Tutorials/tree/master/Design_PairedGuides)
-12. Working with a custom sequence
+12. [Working with a custom sequence](https://github.com/crisprVerse/Tutorials/tree/master/Design_Custom_Sequence)
 
 ### Miscellaneous
 
