@@ -113,16 +113,28 @@ The variant occurs in the seed sequence of this gRNA, 5 bases upstream of the `p
 
 ## Designing gRNAs for human (hg38) with injected minor alleles
 
+It may be desirable, in some applications, to target a genic sequence that contains a minor allele (i.e. less common allele) rather than the major or reference allele. For example, if a particular minor allele is pathogenic and the host cell has a single copy of that allele, the user may want to target that pathogenic variant and disrupt its behavior while leaving the other copy undisturbed.
 
-check for differences between reference and minor in promoter regions
-check genes affected, any with pathological variations?
+As an example, using `BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor`, we can target a pathogenic minor allele ([rs398122995](https://www.ncbi.nlm.nih.gov/clinvar/variation/92240/?oq=rs398122995&m=NM_001378454.1(ALMS1):c.1897C%3ET%20(p.Gln633Ter))) in the human ALMS1 gene. We also include, for comparison, the resulting `GuideSet` using the reference genome sequence.
 
+```{r}
+alms1 <- queryTxObject(txdb_human, 'cds', 'gene_symbol', 'ALMS1')
+gs_reference <- findSpacers(alms1,
+                            crisprNuclease=SpCas9,
+                            bsgenome=BSgenome.Hsapiens.UCSC.hg38)
+gs_reference <- unique(gs_reference)
+gs_minor <- findSpacers(alms1,
+                        crisprNuclease=SpCas9,
+                        bsgenome=BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor)
+gs_minor <- unique(gs_minor)
 
+gs_reference["spacer_615"]
+gs_minor["spacer_612"]
+```
 
-case for chr12:25209843(-), only SNP in KRAS primary tx cds...
+The variant occurs 1 base upstream of the `pam_site`, and likely influences gRNA activity, that is, we can design a gRNA that targets the minor allele and has a much lower affinity for the reference, or major allele.
 
-
-
+Note that while the two `GuideSet`s differ only by their `BSgenome` object, we need to provide different indices to access protospacers at equivalent `pam_site`s. This is due to variants in one `BSgenome` (in this case the one with minor alleles) eliminating PAM sequences, that is, one of the Gs in NGG is changed to another base such that SpCas9 does not recognize it. This, where permissible, is also an effective way of ensuring gRNAs only target a specific sequence if that sequence contains the desired variant.
 
 
 # Session Info

@@ -19,7 +19,7 @@ Using crisprDesign to design gRNAs with minor and major alleles
 
 Authors: Jean-Philippe Fortin, Luke Hoberecht
 
-Date: 18 August, 2022
+Date: 19 August, 2022
 
 # Introduction
 
@@ -163,10 +163,72 @@ using `BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major`.
 
 ## Designing gRNAs for human (hg38) with injected minor alleles
 
-check for differences between reference and minor in promoter regions
-check genes affected, any with pathological variations?
+It may be desirable, in some applications, to target a genic sequence
+that contains a minor allele (i.e. less common allele) rather than the
+major or reference allele. For example, if a particular minor allele is
+pathogenic and the host cell has a single copy of that allele, the user
+may want to target that pathogenic variant and disrupt its behavior
+while leaving the other copy undisturbed.
 
-case for chr12:25209843(-), only SNP in KRAS primary tx cds…
+As an example, using `BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor`, we
+can target a pathogenic minor allele
+([rs398122995](https://www.ncbi.nlm.nih.gov/clinvar/variation/92240/?oq=rs398122995&m=NM_001378454.1(ALMS1):c.1897C%3ET%20(p.Gln633Ter)))
+in the human ALMS1 gene. We also include, for comparison, the resulting
+`GuideSet` using the reference genome sequence.
+
+``` r
+alms1 <- queryTxObject(txdb_human, 'cds', 'gene_symbol', 'ALMS1')
+gs_reference <- findSpacers(alms1,
+                            crisprNuclease=SpCas9,
+                            bsgenome=BSgenome.Hsapiens.UCSC.hg38)
+gs_reference <- unique(gs_reference)
+gs_minor <- findSpacers(alms1,
+                        crisprNuclease=SpCas9,
+                        bsgenome=BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor)
+gs_minor <- unique(gs_minor)
+
+gs_reference["spacer_615"]
+```
+
+    ## GuideSet object with 1 range and 5 metadata columns:
+    ##              seqnames    ranges strand |          protospacer            pam
+    ##                 <Rle> <IRanges>  <Rle> |       <DNAStringSet> <DNAStringSet>
+    ##   spacer_615     chr2  73448425      - | TACTCTCTGGTAACTCTTGT            TGG
+    ##               pam_site  cut_site      region
+    ##              <numeric> <numeric> <character>
+    ##   spacer_615  73448425  73448428    region_7
+    ##   -------
+    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: SpCas9
+
+``` r
+gs_minor["spacer_612"]
+```
+
+    ## GuideSet object with 1 range and 5 metadata columns:
+    ##              seqnames    ranges strand |          protospacer            pam
+    ##                 <Rle> <IRanges>  <Rle> |       <DNAStringSet> <DNAStringSet>
+    ##   spacer_612     chr2  73448425      - | TACTCTCTGGTAACTCTTGC            TGG
+    ##               pam_site  cut_site      region
+    ##              <numeric> <numeric> <character>
+    ##   spacer_612  73448425  73448428    region_7
+    ##   -------
+    ##   seqinfo: 595 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: SpCas9
+
+The variant occurs 1 base upstream of the `pam_site`, and likely
+influences gRNA activity, that is, we can design a gRNA that targets the
+minor allele and has a much lower affinity for the reference, or major
+allele.
+
+Note that while the two `GuideSet`s differ only by their `BSgenome`
+object, we need to provide different indices to access protospacers at
+equivalent `pam_site`s. This is due to variants in one `BSgenome` (in
+this case the one with minor alleles) eliminating PAM sequences, that
+is, one of the Gs in NGG is changed to another base such that SpCas9
+does not recognize it. This, where permissible, is also an effective way
+of ensuring gRNAs only target a specific sequence if that sequence
+contains the desired variant.
 
 # Session Info
 
