@@ -3,7 +3,7 @@
 ### Getting started 
 
 1. [Installation](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
-2. [Building a genome index for off-target alignment](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
+2. [Building a genome index for on- and off-target alignment](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
 3. [Specifying a custom nuclease](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease)
 4. [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
 
@@ -20,14 +20,14 @@
 ### Less common gRNA design workflows
 
 11. [Paired gRNA design](https://github.com/crisprVerse/Tutorials/tree/master/Design_PairedGuides)
-12. [Working with a custom sequence](https://github.com/crisprVerse/Tutorials/tree/master/Design_Custom_Sequence)
+12. [Working with custom DNA sequences](https://github.com/crisprVerse/Tutorials/tree/master/Design_Custom_Sequence)
+13. [Design for optical pooled screening (OPS)](https://github.com/crisprVerse/Tutorials/tree/master/Design_OPS)
 
 ### Miscellaneous
 
-13. [Mapping gRNAs across species](https://github.com/crisprVerse/Tutorials/tree/master/Design_Cross_Reactivity)
-14. [Working with minor and major alleles](https://github.com/crisprVerse/Tutorials/tree/master/Design_Minor_Major_Allele)
-15. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
-16. [Design for optical pooled screening (OPS)](https://github.com/crisprVerse/Tutorials/tree/master/Design_OPS)
+14. [Mapping gRNAs across species](https://github.com/crisprVerse/Tutorials/tree/master/Design_Cross_Reactivity)
+15. [Working with minor and major alleles](https://github.com/crisprVerse/Tutorials/tree/master/Design_Minor_Major_Allele)
+16. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
 
 ### Building a genome-wide database for a given nuclease
 
