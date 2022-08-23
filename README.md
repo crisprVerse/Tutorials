@@ -2,8 +2,7 @@
 
 ### Getting started 
 
-0. [Overview]()
-1. Installation
+1. [Installation](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
 2. [Building genome indices](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
 3. [Building a custom nuclease object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease)
 4. [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
