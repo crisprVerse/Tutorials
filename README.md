@@ -12,7 +12,7 @@
 5. [CRISPR knockout (CRISPRko) design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9)
 6. [CRISPR knockout (CRISPRko) design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas12a)
 7. [CRISPR knockdown (CRISPRkd) design with Cas13d](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRkd_CasRx)
-8. [CRISPR base editing (CRISPRbe) design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRbe)
+8. [CRISPR base editing (CRISPRbe) design with BE4max](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRbe)
 9. [CRISPR activation (CRISPRa) design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRa)
 10. [CRISPR interference (CRISPRi) design](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRi)
 
