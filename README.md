@@ -3,7 +3,7 @@
 ### Getting started 
 
 1. [Installation](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
-2. [Building a genome index for on- and off-target alignment](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
+2. [Building a genome index for off-target alignment](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
 3. [Specifying a custom nuclease](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease)
 4. [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
 
