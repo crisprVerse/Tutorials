@@ -1,4 +1,4 @@
-# List of tutorials
+# Tutorials for the crisprVerse
 
 ### Getting started 
 
