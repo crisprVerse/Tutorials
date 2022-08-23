@@ -1,8 +1,11 @@
 ---
 title: "Building a nuclease object"
-output: 
+author: "Jean-Philippe Fortin, Luke Hoberecht"
+output:
+  pdf_document:
+    toc: yes
   github_document:
-    toc: true
+    toc: yes
 bibliography: references.bib
 ---
 
@@ -10,9 +13,6 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE, eval=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin
-
-Date: July 5, 2022
 
 # Overview
 
@@ -196,7 +196,8 @@ SpCas9 <- CrisprNuclease("SpCas9",
                          targetType="DNA",
                          pams=c("(3/3)NGG", "(3/3)NAG", "(3/3)NGA"),
                          weights=c(1, 0.2593, 0.0694),
-                         metadata=list(description="Wildtype Streptococcus pyogenes Cas9 (SpCas9) nuclease"),
+                         metadata=list(description="Wildtype Streptococcus 
+                                       pyogenes Cas9 (SpCas9) nuclease"),
                          pam_side="3prime",
                          spacer_length=20)
 SpCas9
@@ -234,9 +235,8 @@ AsCas12a
 ## CrisprNuclease objects provided in CrisprBase
 
 Several already-constructed `crisprNuclease` objects are available 
-in `crisprBase`, see `data(package="crisprBase")`.
-
-
+in `crisprBase`, 
+see `data(package="crisprBase")`.
 
 
 # CRISPR arithmetics
