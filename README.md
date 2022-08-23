@@ -1,8 +1,5 @@
 # List of tutorials
 
-
-# Lexicon
-
 ### Getting started 
 
 0. [Overview]()
