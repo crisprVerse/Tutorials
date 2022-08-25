@@ -1,5 +1,6 @@
 ---
 title: "Building custom CRISPR nuclease objects"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,52 +11,54 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
 
 
 # Introduction
 
-The `crisprBase` package provides S4 classes to represent nucleases, and more specifically nucleases for CRISPR applications. It also provides arithmetic functions to extract genomic ranges to help with the design and manipulation of CRISPR guide-RNAs (gRNAs). The classes and functions are designed to work with a broad spectrum of nucleases and applications, including PAM-free CRISPR nucleases, RNA-targeting nucleases, and the more general class of restriction enzymes. It also includes functionalities for CRISPR nickases. 
+The `crisprBase` package provides functionalities to represent and specify
+custom CRISPR nucleases to be used in the crisprVerse ecosystem, as well as
+other enzymes such as base editors and nickases. Commonly-used CRISPR
+nucleases, such as SpCas9, AsCas12a, enAsCas12a, and CasRx are readily
+available in the package, and users do not need to reconstruct those
+nucleases. 
 
-It provides a language and convention for our gRNA design ecosystem described in our recent bioRxiv preprint: ["A comprehensive Bioconductor ecosystem for the design of CRISPR guide RNAs across nucleases and technologies"](https://www.biorxiv.org/content/10.1101/2022.04.21.488824v2)
+The package also provides 
+arithmetic functions to extract genomic ranges to help with the design and 
+manipulation of CRISPR guide RNAs (gRNAs). The classes and functions are 
+designed to work with a broad spectrum of nucleases and applications, 
+including PAM-free CRISPR nucleases, RNA-targeting nucleases, and the
+more general class of restriction enzymes. It also includes functionalities
+for CRISPR nickases. 
 
-In this tutorial we show how to construct objects of the following S4 classes: `Nuclease`, `CrisprNuclease`, `BaseEditor`, `CrisprNickase`. We also discuss some important details of these objects, how to easily retrieve key information with accessor functions, and how to use arithmetic functions on these objects in facilitating gRNA design.
+In this tutorial we show how to construct objects for the 
+following enzymes: `Nuclease`, 
+`CrisprNuclease`, `BaseEditor`, `CrisprNickase`. 
+We also discuss some important details of these objects, how 
+to easily retrieve key information with accessor functions, 
+and how to use arithmetic functions on these objects in 
+facilitating gRNA design.
 
 
 # Installation
 
-## Software requirements
 
-### OS Requirements
-
-This package is supported for macOS, Linux and Windows machines.
-It was developed and tested on R version 4.2.
-
-## Installation
-
-`crisprBase` can be installed by entering the following commands in an R session:
-
-```{r, warning=FALSE, message=FALSE, results='hide'}
-install.packages("devtools")
-library(devtools)
-install_github("Jfortin1/crisprBase")
-```
-
+`crisprBase` is part of the [crisprVerse](https://github.com/crisprVerse), and
+can be installed by installing the `crisprVerse` package; see the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation).
 
 ### Getting started
 
-`crisprBase` can be loaded in the usual way:
+`crisprBase` can be loaded by loading the `crisprVerse` package:
 
 ```{r, warnings=FALSE, message=FALSE}
-library(crisprBase)
+library(crisprVerse)
 ```
 
 
 # Nuclease class
 
-The `Nuclease` class is designed to store minimal information about the recognition sites of general nucleases, such as restriction enzymes. The `Nuclease` class has 5 fields:
+The `Nuclease` class is designed to store minimal information about 
+the recognition sites of general nucleases, such as restriction 
+enzymes. The `Nuclease` class has 5 fields:
 
 - `nucleaseName`: a string giving the name of the nuclease
 - `targetType`: a string specifying whether the nuclease targets `"DNA"` (deoxyribonucleases) or `"RNA"` (ribonucleases)
@@ -70,7 +73,8 @@ We use the Rebase convention in representing motif sequences [@rebase]. For enzy
 
 ## Examples
 
-The following examples use the `Nuclease` class constructor function from `crisprBase` to create `Nuclease` objects representing common restriction enzymes.
+The following examples use the `Nuclease` class constructor function 
+from `crisprBase` to create `Nuclease` objects representing common restriction enzymes.
 
 The EcoRI enzyme recognizes the palindromic motif `GAATTC`, and cuts after the first nucleotide. We can create this nuclease with the following function:
 
@@ -182,7 +186,11 @@ AsCas12a
 
 ## CrisprNuclease objects provided in CrisprBase
 
-Several already-constructed `crisprNuclease` objects for some of the most popular CRISPR nucleases are available in `crisprBase` for your convenience. See `data(package="crisprBase")`.
+Several already-constructed `crisprNuclease` objects for some of the most popular CRISPR nucleases are available in `crisprBase` for your convenience. The list of available nucleases can be accessed by typing the following: 
+
+```{r, eval=FALSE}
+data(package="crisprBase")
+```
 
 
 # CRISPR arithmetics

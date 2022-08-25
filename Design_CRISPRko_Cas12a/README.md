@@ -1,43 +1,48 @@
-Using crisprDesign to design gRNAs for CRISPRko with the AsCas12a
-nuclease
+Design gRNAs for CRISPRko with the AsCas12a nuclease
 ================
+Jean-Philippe Fortin, Luke Hoberecht
 
--   [Introduction](#introduction)
--   [Some terminology before we get
-    started](#some-terminology-before-we-get-started)
--   [Installation](#installation)
--   [End-to-end gRNA design workflow](#end-to-end-grna-design-workflow)
-    -   [Nuclease specification](#nuclease-specification)
-    -   [Specification of the target DNA sequence (KRAS
-        CDS)](#specification-of-the-target-dna-sequence-kras-cds)
-    -   [Finding spacer sequences targeting
-        KRAS](#finding-spacer-sequences-targeting-kras)
-    -   [Characterizing gRNA spacer
-        sequences](#characterizing-grna-spacer-sequences)
-    -   [Off-target search with bowtie](#off-target-search-with-bowtie)
-    -   [Removing repeat elements](#removing-repeat-elements)
-    -   [On-target scoring (gRNA
-        efficiency)](#on-target-scoring-grna-efficiency)
-    -   [Restriction enzymes](#restriction-enzymes)
-    -   [Gene annotation](#gene-annotation)
-    -   [TSS annotation](#tss-annotation)
-    -   [SNP annotation](#snp-annotation)
-    -   [Filtering and ranking gRNAs](#filtering-and-ranking-grnas)
--   [Session Info](#session-info)
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: 10 August, 2022
+-   <a href="#introduction" id="toc-introduction">Introduction</a>
+-   <a href="#terminology" id="toc-terminology">Terminology</a>
+-   <a href="#installation" id="toc-installation">Installation</a>
+-   <a href="#end-to-end-grna-design-workflow"
+    id="toc-end-to-end-grna-design-workflow">End-to-end gRNA design
+    workflow</a>
+    -   <a href="#nuclease-specification"
+        id="toc-nuclease-specification">Nuclease specification</a>
+    -   <a href="#specification-of-the-target-dna-sequence-kras-cds"
+        id="toc-specification-of-the-target-dna-sequence-kras-cds">Specification
+        of the target DNA sequence (KRAS CDS)</a>
+    -   <a href="#finding-spacer-sequences-targeting-kras"
+        id="toc-finding-spacer-sequences-targeting-kras">Finding spacer
+        sequences targeting KRAS</a>
+    -   <a href="#characterizing-grna-spacer-sequences"
+        id="toc-characterizing-grna-spacer-sequences">Characterizing gRNA spacer
+        sequences</a>
+    -   <a href="#off-target-search-with-bowtie"
+        id="toc-off-target-search-with-bowtie">Off-target search with bowtie</a>
+    -   <a href="#removing-repeat-elements"
+        id="toc-removing-repeat-elements">Removing repeat elements</a>
+    -   <a href="#on-target-scoring-grna-efficiency"
+        id="toc-on-target-scoring-grna-efficiency">On-target scoring (gRNA
+        efficiency)</a>
+    -   <a href="#restriction-enzymes" id="toc-restriction-enzymes">Restriction
+        enzymes</a>
+    -   <a href="#gene-annotation" id="toc-gene-annotation">Gene annotation</a>
+    -   <a href="#tss-annotation" id="toc-tss-annotation">TSS annotation</a>
+    -   <a href="#snp-annotation" id="toc-snp-annotation">SNP annotation</a>
+    -   <a href="#filtering-and-ranking-grnas"
+        id="toc-filtering-and-ranking-grnas">Filtering and ranking gRNAs</a>
+-   <a href="#session-info" id="toc-session-info">Session Info</a>
 
 # Introduction
 
-In this tutorial, we illustrate the main functionalities of
-`crisprDesign`, the central package of the `crisprVerse` ecosystem, by
-designing CRISPR/Cas12a gRNAs targeting the coding sequence of the human
-gene KRAS. Most steps described in the tutorial are applicable to any
-genomic target.
+In this tutorial, we design CRISPR/Cas12a gRNAs targeting the coding
+sequence of the human gene KRAS. In particular, we use the AsCas12a
+nuclease. The tutorial is very similar to the [gRNA design for
+Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9).
 
-# Some terminology before we get started
+# Terminology
 
 Before we start designing gRNAs, we first introduce some terminology
 that will be useful throughout this and subsequent tutorials. CRISPR
@@ -60,52 +65,44 @@ protospacer sequence with a combination of 3 attributes:
 -   `chr`: chromosome name
 -   `strand`: forward (+) or reverse (-)
 -   `pam_site`: genomic coordinate of the first nucleotide of the
-    nuclease-specific PAM sequence; for SpCas9 this is the “N” in the
-    NGG PAM sequence
+    nuclease-specific PAM sequence; for AsCas12a this is the first “T”
+    in the TTTV PAM sequence
 
 For CRISPRko applications, we use an additional genomic coordinate,
 called `cut_site`, to represent where the double-stranded break (DSB)
-occurs. For AsCas12a, the 5nt 5’ overhang dsDNA break will cause a cut
+occurs. For enAsCas12a, the 5nt 5’ overhang dsDNA break will cause a cut
 19nt after the PAM sequence on the targeted strand, and 23nt after the
 PAM sequence on the opposite strand (PAM-distal editing).
 
 # Installation
 
-First, we install the necessary packages for this tutorial from
-Bioconductor using the following commands:
-
-``` r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-``` r
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
+See the [Installation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
+to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 # End-to-end gRNA design workflow
 
-We first start by loading the required packages:
+We first start by loading the crisprVerse packages needed for this
+tutorial:
 
 ``` r
 library(crisprBase)
 library(crisprDesign)
 library(crisprDesignData)
+```
+
+We will also load the `BSgenome` package containing DNA sequences for
+the hg38 genome:
+
+``` r
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
 ## Nuclease specification
 
-We load the `AsCas12a` nuclease object from the `crisprBase` package
-(see the `crisprBase` [vignette](https://github.com/Jfortin1/crisprBase)
-for instructions on how to create or load alternative nucleases):
+We first load the `AsCas12a` nuclease object from the `crisprBase`
+package:
 
 ``` r
 data(AsCas12a, package="crisprBase")
@@ -123,6 +120,9 @@ AsCas12a
     ##     Distance from PAM: 0
     ##   Prototype protospacers: 5'--[TTTV]SSSSSSSSSSSSSSSSSSSSSSS--3'
 
+To learn how to specify a custom nuclease, see the [nuclease
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease).
+
 The motif (TTTV) represents the recognized PAM sequences by AsCas12a,
 and the weights indicate a recognition score. The single canonical PAM
 sequence for AsCas12a has a weight of 1.
@@ -130,8 +130,8 @@ sequence for AsCas12a has a weight of 1.
 The spacer sequence is located on the 3-prime end with respect to the
 PAM sequence, and the default spacer sequence length is 23 nucleotides.
 If necessary, one can change the spacer length using the function
-`crisprBase::spacerLength`. We can inspect the protospacer construct by
-using `prototypeSequence`:
+`spacerLength` from `crisprBase`. We can inspect the protospacer
+construct by using `prototypeSequence`:
 
 ``` r
 prototypeSequence(AsCas12a)
@@ -143,10 +143,10 @@ prototypeSequence(AsCas12a)
 
 Since we aim to design gRNAs that knock out the human KRAS gene, we
 first need to retrieve the DNA sequence of the coding region (CDS) of
-KRAS. We show in this
-[tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
-how to build convenient gene model objects that allows for quick access
-to gene-specific sequences. Here, we obtain from `crisprDesignData` a
+KRAS. W e show in the [gene annotation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
+how to build convenient gene model objects that allows to quickly access
+gene-specific sequences. Here, we obtain from `crisprDesignData` a
 `GRangesList` object that defines the genomic coordinates (in hg38
 coordinates) of coding genes in the human genome:
 
@@ -154,9 +154,9 @@ coordinates) of coding genes in the human genome:
 data(txdb_human, package="crisprDesignData")
 ```
 
-The `queryTxObject` function allows us to query this object by feature
-for specific gene(s). Here, we obtain a `GRanges` object containing the
-CDS coordinates of KRAS:
+The `queryTxObject` function allows us to query this object for a
+specific gene and feature. Here, we obtain a `GRanges` object containing
+the CDS coordinates of KRAS:
 
 ``` r
 gr <- queryTxObject(txObject=txdb_human,
@@ -165,9 +165,8 @@ gr <- queryTxObject(txObject=txdb_human,
                     queryValue="KRAS")
 ```
 
-To simplify our design, we will only consider coding sequences that
-constitute the primary transcript of the gene (transcript ID:
-ENST00000311936).
+To simplify our design, we will only consider exons that constitute the
+primary transcript of KRAS (transcript ID ENST00000311936).
 
 ``` r
 gr <- gr[gr$tx_id == "ENST00000311936"]
@@ -366,9 +365,9 @@ interest, it is important to avoid gRNAs that target additional loci in
 the genome with either perfect sequence complementarity (multiple
 on-targets), or imperfect complementarity through tolerated mismatches
 (off-targets). As the AsCas12a nuclease can tolerate mismatches between
-the gRNA spacer sequence (RNA) and the protospacer sequence (DNA),
-characteriing off-targets is necessary for minimizing the introduction
-of double-stranded breaks (DSBs) beyond our intended target.
+the gRNA spacer sequence (RNA) and the protospacer sequence (DNA), it is
+necessary to characterize off-targets to minimize the introduction of
+double-stranded breaks (DSBs) beyond our intended target.
 
 The `addSpacerAlignments` function appends a list of putative on- and
 off-targets to a `GuideSet` object using one of three methods. The first
@@ -376,8 +375,8 @@ method uses the fast aligner
 [bowtie](http://bowtie-bio.sourceforge.net/index.shtml)
 \[@langmead2009bowtie\] via the `crisprBowtie` package to map spacer
 sequences to a specified reference genome. This can be done by
-specifying `aligner="bowtie"` and providing a path to a bowtie index
-file to the `aligner_index` argument in `addSpacerAlignments`.
+specifying `aligner="bowtie` and providing a path to a bowtie index file
+to `aligner_index` in `addSpacerAlignments`.
 
 We can control the alignment parameters and output with several function
 arguments.
@@ -386,24 +385,25 @@ arguments.
     mismatches (up to 3 mismatches).
 -   `n_max_alignments` specifies the maximum number of alignments for a
     given gRNA spacer sequence (1000 by default).
--   `all_alignments`, when `TRUE`, overrules the `n_max_alignments` and
-    returns all possible alignments.
+-   `all_alignments`, when set to `TRUE`, overrules the
+    `n_max_alignments` and returns all possible alignments.
 -   `canonical` filters out protospacer sequences that do not have a
     canonical PAM sequence when `TRUE`.
 
-Let’s search for on- and off-targets having up to 1 mismatch using
+Let’s search for on- and off-targets having up to 2 mismatches using
 bowtie. To use bowtie, we need to specify a bowtie index for the human
 genome:
 
 ``` r
-# Users need to change this path to their local bowtie index
+# Path of the hg38 bowtie index on my personal laptop:
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
 For instructions on how to build a Bowtie index from a given reference
 genome, see the [genome index
 tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
-or the [crisprBowtie page](https://github.com/Jfortin1/crisprBowtie) .
+or the [crisprBowtie page](https://github.com/crisprVerse/crisprBowtie)
+.
 
 We will also specify the gene model object `txdb_human` from
 `crisprDesignData` described above for `txObject` argument, which is
@@ -417,7 +417,7 @@ guideSet <- addSpacerAlignments(guideSet,
                                 aligner="bowtie",
                                 aligner_index=bowtie_index,
                                 bsgenome=BSgenome.Hsapiens.UCSC.hg38,
-                                n_mismatches=1,
+                                n_mismatches=2,
                                 txObject=txdb_human)
 ```
 
@@ -425,186 +425,6 @@ guideSet <- addSpacerAlignments(guideSet,
     ## [runCrisprBowtie] Searching for AsCas12a protospacers
 
 ``` r
-guideSet
-```
-
-    ## GuideSet object with 34 ranges and 16 metadata columns:
-    ##             seqnames    ranges strand |             protospacer            pam
-    ##                <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
-    ##    spacer_1    chr12  25209794      + | CATAATTACACACTTTGTCTTTG           TTTA
-    ##    spacer_2    chr12  25209811      + | TCTTTGACTTCTTTTTCTTCTTT           TTTG
-    ##    spacer_3    chr12  25209817      + | ACTTCTTTTTCTTCTTTTTACCA           TTTG
-    ##    spacer_4    chr12  25209828      + | TTCTTTTTACCATCTTTGCTCAT           TTTC
-    ##    spacer_5    chr12  25209837      + | CCATCTTTGCTCATCTTTTCTTT           TTTA
-    ##         ...      ...       ...    ... .                     ...            ...
-    ##   spacer_30    chr12  25227376      + | TCCATCAATTACTACTTGCTTCC           TTTC
-    ##   spacer_31    chr12  25227427      - | TCCCTTCTCAGGATTCCTACAGG           TTTC
-    ##   spacer_32    chr12  25245269      + | CCTCTATTGTTGGATCATATTCG           TTTA
-    ##   spacer_33    chr12  25245303      - | TGGACGAATATGATCCAACAATA           TTTG
-    ##   spacer_34    chr12  25245406      - | TTATAAGGCCTGCTGAAAATGAC           TTTA
-    ##              pam_site  cut_site      region percentGC     polyA     polyC
-    ##             <numeric> <numeric> <character> <numeric> <logical> <logical>
-    ##    spacer_1  25209794  25209818    region_8      30.4     FALSE     FALSE
-    ##    spacer_2  25209811  25209835    region_8      26.1     FALSE     FALSE
-    ##    spacer_3  25209817  25209841    region_8      26.1     FALSE     FALSE
-    ##    spacer_4  25209828  25209852    region_8      30.4     FALSE     FALSE
-    ##    spacer_5  25209837  25209861    region_8      34.8     FALSE     FALSE
-    ##         ...       ...       ...         ...       ...       ...       ...
-    ##   spacer_30  25227376  25227400    region_6      39.1     FALSE     FALSE
-    ##   spacer_31  25227427  25227403    region_6      52.2     FALSE     FALSE
-    ##   spacer_32  25245269  25245293    region_5      39.1     FALSE     FALSE
-    ##   spacer_33  25245303  25245279    region_5      34.8     FALSE     FALSE
-    ##   spacer_34  25245406  25245382    region_5      39.1      TRUE     FALSE
-    ##                 polyG     polyT startingGGGGG        n0        n1      n0_c
-    ##             <logical> <logical>     <logical> <numeric> <numeric> <numeric>
-    ##    spacer_1     FALSE     FALSE         FALSE         1         1         1
-    ##    spacer_2     FALSE      TRUE         FALSE         1         0         1
-    ##    spacer_3     FALSE      TRUE         FALSE         1         0         1
-    ##    spacer_4     FALSE      TRUE         FALSE         1         1         1
-    ##    spacer_5     FALSE      TRUE         FALSE         1         0         1
-    ##         ...       ...       ...           ...       ...       ...       ...
-    ##   spacer_30     FALSE     FALSE         FALSE         2         0         1
-    ##   spacer_31     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_32     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_33     FALSE     FALSE         FALSE         1         1         1
-    ##   spacer_34     FALSE     FALSE         FALSE         1         0         1
-    ##                  n1_c                       alignments
-    ##             <numeric>                    <GRangesList>
-    ##    spacer_1         0 chr12:25209794:+,chr6:54771134:-
-    ##    spacer_2         0                 chr12:25209811:+
-    ##    spacer_3         0                 chr12:25209817:+
-    ##    spacer_4         0 chr12:25209828:+,chr6:54771104:-
-    ##    spacer_5         0                 chr12:25209837:+
-    ##         ...       ...                              ...
-    ##   spacer_30         0 chr12:25227376:+,chr6:54770730:-
-    ##   spacer_31         0                 chr12:25227427:-
-    ##   spacer_32         0                 chr12:25245269:+
-    ##   spacer_33         0 chr12:25245303:-,chr6:54770664:+
-    ##   spacer_34         0                 chr12:25245406:-
-    ##   -------
-    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
-    ##   crisprNuclease: AsCas12a
-
-Several columns were added to the `GuideSet` object that summarize the
-number of on- and off-targets for each spacer sequence, and take genomic
-context into account:
-
--   **n0, n1, n2, n3**: specify the number of alignments with 0, 1, 2
-    and 3 mismatches, respectively.
--   **n0_c, n1_c, n2_c, n3_c**: specify the number of alignments in a
-    **coding region**, with 0, 1, 2 and 3 mismatches, respectively.
--   **n0_p, n1_p, n2_p, n3_p**: specify the number of alignments in a
-    **promoter region** of a coding gene, with 0, 1, 2 and 3 mismatches,
-    respectively.
-
-Our `guideSet` now has columns of the first two categories, up to 1
-mismatch (the value passed to `n_mismatches`); had we also supplied a
-`GRanges` of TSS coordinates to the `tssObject` argument, our `guideSet`
-would include columns in the last category.
-
-To inspect individual on- and off-targets and their context, use the
-`alignments` function, which returns a table of all genomic alignments
-stored in the `GuideSet` object:
-
-``` r
-alignments(guideSet)
-```
-
-    ## GRanges object with 48 ranges and 14 metadata columns:
-    ##             seqnames    ranges strand |                  spacer
-    ##                <Rle> <IRanges>  <Rle> |          <DNAStringSet>
-    ##    spacer_1    chr12  25209794      + | CATAATTACACACTTTGTCTTTG
-    ##    spacer_1     chr6  54771134      - | CATAATTACACACTTTGTCTTTG
-    ##    spacer_2    chr12  25209811      + | TCTTTGACTTCTTTTTCTTCTTT
-    ##    spacer_3    chr12  25209817      + | ACTTCTTTTTCTTCTTTTTACCA
-    ##    spacer_4    chr12  25209828      + | TTCTTTTTACCATCTTTGCTCAT
-    ##         ...      ...       ...    ... .                     ...
-    ##   spacer_31    chr12  25227427      - | TCCCTTCTCAGGATTCCTACAGG
-    ##   spacer_32    chr12  25245269      + | CCTCTATTGTTGGATCATATTCG
-    ##   spacer_33    chr12  25245303      - | TGGACGAATATGATCCAACAATA
-    ##   spacer_33     chr6  54770664      + | TGGACGAATATGATCCAACAATA
-    ##   spacer_34    chr12  25245406      - | TTATAAGGCCTGCTGAAAATGAC
-    ##                         protospacer            pam  pam_site n_mismatches
-    ##                      <DNAStringSet> <DNAStringSet> <numeric>    <integer>
-    ##    spacer_1 CATAATTACACACTTTGTCTTTG           TTTA  25209794            0
-    ##    spacer_1 CATAATTACACACTTTGTCATTG           TTTA  54771134            1
-    ##    spacer_2 TCTTTGACTTCTTTTTCTTCTTT           TTTG  25209811            0
-    ##    spacer_3 ACTTCTTTTTCTTCTTTTTACCA           TTTG  25209817            0
-    ##    spacer_4 TTCTTTTTACCATCTTTGCTCAT           TTTC  25209828            0
-    ##         ...                     ...            ...       ...          ...
-    ##   spacer_31 TCCCTTCTCAGGATTCCTACAGG           TTTC  25227427            0
-    ##   spacer_32 CCTCTATTGTTGGATCATATTCG           TTTA  25245269            0
-    ##   spacer_33 TGGACGAATATGATCCAACAATA           TTTG  25245303            0
-    ##   spacer_33 TGGACCAATATGATCCAACAATA           TTTG  54770664            1
-    ##   spacer_34 TTATAAGGCCTGCTGAAAATGAC           TTTA  25245406            0
-    ##             canonical  cut_site         cds    fiveUTRs   threeUTRs       exons
-    ##             <logical> <numeric> <character> <character> <character> <character>
-    ##    spacer_1      TRUE  25209818        KRAS        <NA>        KRAS        KRAS
-    ##    spacer_1      TRUE  54771110        <NA>        <NA>        <NA>      KRASP1
-    ##    spacer_2      TRUE  25209835        KRAS        <NA>        KRAS        KRAS
-    ##    spacer_3      TRUE  25209841        KRAS        <NA>        KRAS        KRAS
-    ##    spacer_4      TRUE  25209852        KRAS        <NA>        KRAS        KRAS
-    ##         ...       ...       ...         ...         ...         ...         ...
-    ##   spacer_31      TRUE  25227403        KRAS        <NA>        <NA>        KRAS
-    ##   spacer_32      TRUE  25245293        KRAS        <NA>        <NA>        KRAS
-    ##   spacer_33      TRUE  25245279        KRAS        <NA>        <NA>        KRAS
-    ##   spacer_33      TRUE  54770688        <NA>        <NA>        <NA>      KRASP1
-    ##   spacer_34      TRUE  25245382        KRAS        <NA>        <NA>        KRAS
-    ##                 introns  intergenic intergenic_distance
-    ##             <character> <character>           <integer>
-    ##    spacer_1        <NA>        <NA>                <NA>
-    ##    spacer_1        <NA>        <NA>                <NA>
-    ##    spacer_2        <NA>        <NA>                <NA>
-    ##    spacer_3        <NA>        <NA>                <NA>
-    ##    spacer_4        <NA>        <NA>                <NA>
-    ##         ...         ...         ...                 ...
-    ##   spacer_31        KRAS        <NA>                <NA>
-    ##   spacer_32        <NA>        <NA>                <NA>
-    ##   spacer_33        <NA>        <NA>                <NA>
-    ##   spacer_33        <NA>        <NA>                <NA>
-    ##   spacer_34        <NA>        <NA>                <NA>
-    ##   -------
-    ##   seqinfo: 25 sequences (1 circular) from hg38 genome
-
-Similarly, the functions `onTargets` and `offTargets` return on-target
-alignments (no mismatches) and off-target alignments (having at least
-one mismatch), respectively. See `?addSpacerAlignments` for more details
-about the different options.
-
-We note that gRNAs that align to hundreds of different locations are
-highly unspecific and undesirable. This can also cause
-`addSpacerAlignments` to be slow. The function
-`addSpacerAlignmentsIterative` is an iterative version of
-`addSpacerAlignments` that curtails alignment searches for gRNAs having
-more hits than the user-defined threshold. See
-`?addSpacerAlignmentsIterative` for more information.
-
-## Removing repeat elements
-
-Many promiscuous protospacer sequences occur in repeats or
-low-complexity DNA sequences (regions identified by RepeatMasker). These
-sequences are usually not of interest due to their low specificity, and
-can be easily removed with `removeRepeats` and a `GRanges` of repeat
-ranges, which for this example we will obtain from the
-`crisprDesignData` package.
-
-``` r
-data("gr.repeats.hg38", package="crisprDesignData")
-guideSet <- removeRepeats(guideSet,
-                          gr.repeats=gr.repeats.hg38)
-```
-
-## On-target scoring (gRNA efficiency)
-
-`addOnTargetScores` adds scores from on-target efficiency algorithms
-specified by the `methods` argument (or all available methods if `NULL`)
-available in the R package
-[crisprScore](https://github.com/Jfortin1/crisprScore) and appends them
-to the `GuideSet`:
-
-``` r
-guideSet <- addOnTargetScores(guideSet,
-                              methods=c("deepcpf1"))
 guideSet
 ```
 
@@ -635,38 +455,229 @@ guideSet
     ##   spacer_32  25245269  25245293    region_5      39.1     FALSE     FALSE
     ##   spacer_33  25245303  25245279    region_5      34.8     FALSE     FALSE
     ##   spacer_34  25245406  25245382    region_5      39.1      TRUE     FALSE
-    ##                 polyG     polyT startingGGGGG        n0        n1      n0_c
+    ##                 polyG     polyT startingGGGGG        n0        n1        n2
     ##             <logical> <logical>     <logical> <numeric> <numeric> <numeric>
-    ##    spacer_1     FALSE     FALSE         FALSE         1         1         1
+    ##    spacer_1     FALSE     FALSE         FALSE         1         1         0
     ##    spacer_2     FALSE      TRUE         FALSE         1         0         1
     ##    spacer_3     FALSE      TRUE         FALSE         1         0         1
-    ##    spacer_4     FALSE      TRUE         FALSE         1         1         1
-    ##    spacer_5     FALSE      TRUE         FALSE         1         0         1
+    ##    spacer_4     FALSE      TRUE         FALSE         1         1         0
+    ##    spacer_5     FALSE      TRUE         FALSE         1         0         0
     ##         ...       ...       ...           ...       ...       ...       ...
-    ##   spacer_30     FALSE     FALSE         FALSE         2         0         1
-    ##   spacer_31     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_32     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_33     FALSE     FALSE         FALSE         1         1         1
-    ##   spacer_34     FALSE     FALSE         FALSE         1         0         1
-    ##                  n1_c                       alignments inRepeats score_deepcpf1
-    ##             <numeric>                    <GRangesList> <logical>      <numeric>
-    ##    spacer_1         0 chr12:25209794:+,chr6:54771134:-     FALSE      0.4334809
-    ##    spacer_2         0                 chr12:25209811:+     FALSE      0.0121805
-    ##    spacer_3         0                 chr12:25209817:+     FALSE      0.0112045
-    ##    spacer_4         0 chr12:25209828:+,chr6:54771104:-     FALSE      0.0116443
-    ##    spacer_5         0                 chr12:25209837:+     FALSE      0.3527995
-    ##         ...       ...                              ...       ...            ...
-    ##   spacer_30         0 chr12:25227376:+,chr6:54770730:-     FALSE       0.600635
-    ##   spacer_31         0                 chr12:25227427:-     FALSE       0.586483
-    ##   spacer_32         0                 chr12:25245269:+     FALSE       0.609269
-    ##   spacer_33         0 chr12:25245303:-,chr6:54770664:+     FALSE       0.596874
-    ##   spacer_34         0                 chr12:25245406:-     FALSE       0.604862
+    ##   spacer_30     FALSE     FALSE         FALSE         2         0         0
+    ##   spacer_31     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_32     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_33     FALSE     FALSE         FALSE         1         1         0
+    ##   spacer_34     FALSE     FALSE         FALSE         1         0         0
+    ##                  n0_c      n1_c      n2_c                        alignments
+    ##             <numeric> <numeric> <numeric>                     <GRangesList>
+    ##    spacer_1         1         0         0  chr12:25209794:+,chr6:54771134:-
+    ##    spacer_2         1         0         0 chr12:25209811:+,chr6:117625992:-
+    ##    spacer_3         1         0         0  chr12:25209817:+,chr5:54961047:-
+    ##    spacer_4         1         0         0  chr12:25209828:+,chr6:54771104:-
+    ##    spacer_5         1         0         0                  chr12:25209837:+
+    ##         ...       ...       ...       ...                               ...
+    ##   spacer_30         1         0         0  chr12:25227376:+,chr6:54770730:-
+    ##   spacer_31         1         0         0                  chr12:25227427:-
+    ##   spacer_32         1         0         0                  chr12:25245269:+
+    ##   spacer_33         1         0         0  chr12:25245303:-,chr6:54770664:+
+    ##   spacer_34         1         0         0                  chr12:25245406:-
     ##   -------
     ##   seqinfo: 640 sequences (1 circular) from hg38 genome
     ##   crisprNuclease: AsCas12a
 
-See the [crisprScore page](https://github.com/Jfortin1/crisprScore) for
-a full description of the different scores.
+Several columns were added to the `GuideSet` object that summarize the
+number of on- and off-targets for each spacer sequence, and take genomic
+context into account:
+
+-   **n0, n1, n2, n3**: specify the number of alignments with 0, 1, 2
+    and 3 mismatches, respectively.
+-   **n0_c, n1_c, n2_c, n3_c**: specify the number of alignments in a
+    coding region, with 0, 1, 2 and 3 mismatches, respectively.
+-   **n0_p, n1_p, n2_p, n3_p**: specify the number of alignments in a
+    promoter region of a coding gene, with 0, 1, 2 and 3 mismatches,
+    respectively.
+
+Our `guideSet` now has columns of the first two categories, up to 2
+mismatches (the value passed to `n_mismatches`); had we also supplied a
+`GRanges` of TSS coordinates to the `tssObject` argument, our `guideSet`
+would include columns in the last category.
+
+To inspect individual on- and off-targets and their context, one can use
+the `alignments` function, which returns a table of all genomic
+alignments stored in the `GuideSet` object:
+
+``` r
+alignments(guideSet)
+```
+
+    ## GRanges object with 50 ranges and 14 metadata columns:
+    ##             seqnames    ranges strand |                  spacer
+    ##                <Rle> <IRanges>  <Rle> |          <DNAStringSet>
+    ##    spacer_1    chr12  25209794      + | CATAATTACACACTTTGTCTTTG
+    ##    spacer_1     chr6  54771134      - | CATAATTACACACTTTGTCTTTG
+    ##    spacer_2    chr12  25209811      + | TCTTTGACTTCTTTTTCTTCTTT
+    ##    spacer_2     chr6 117625992      - | TCTTTGACTTCTTTTTCTTCTTT
+    ##    spacer_3    chr12  25209817      + | ACTTCTTTTTCTTCTTTTTACCA
+    ##         ...      ...       ...    ... .                     ...
+    ##   spacer_31    chr12  25227427      - | TCCCTTCTCAGGATTCCTACAGG
+    ##   spacer_32    chr12  25245269      + | CCTCTATTGTTGGATCATATTCG
+    ##   spacer_33    chr12  25245303      - | TGGACGAATATGATCCAACAATA
+    ##   spacer_33     chr6  54770664      + | TGGACGAATATGATCCAACAATA
+    ##   spacer_34    chr12  25245406      - | TTATAAGGCCTGCTGAAAATGAC
+    ##                         protospacer            pam  pam_site n_mismatches
+    ##                      <DNAStringSet> <DNAStringSet> <numeric>    <integer>
+    ##    spacer_1 CATAATTACACACTTTGTCTTTG           TTTA  25209794            0
+    ##    spacer_1 CATAATTACACACTTTGTCATTG           TTTA  54771134            1
+    ##    spacer_2 TCTTTGACTTCTTTTTCTTCTTT           TTTG  25209811            0
+    ##    spacer_2 TCTTTCCCTTCTTTTTCTTCTTT           TTTG 117625992            2
+    ##    spacer_3 ACTTCTTTTTCTTCTTTTTACCA           TTTG  25209817            0
+    ##         ...                     ...            ...       ...          ...
+    ##   spacer_31 TCCCTTCTCAGGATTCCTACAGG           TTTC  25227427            0
+    ##   spacer_32 CCTCTATTGTTGGATCATATTCG           TTTA  25245269            0
+    ##   spacer_33 TGGACGAATATGATCCAACAATA           TTTG  25245303            0
+    ##   spacer_33 TGGACCAATATGATCCAACAATA           TTTG  54770664            1
+    ##   spacer_34 TTATAAGGCCTGCTGAAAATGAC           TTTA  25245406            0
+    ##             canonical  cut_site         cds    fiveUTRs   threeUTRs       exons
+    ##             <logical> <numeric> <character> <character> <character> <character>
+    ##    spacer_1      TRUE  25209818        KRAS        <NA>        KRAS        KRAS
+    ##    spacer_1      TRUE  54771110        <NA>        <NA>        <NA>      KRASP1
+    ##    spacer_2      TRUE  25209835        KRAS        <NA>        KRAS        KRAS
+    ##    spacer_2      TRUE 117625968        <NA>        <NA>        <NA>        <NA>
+    ##    spacer_3      TRUE  25209841        KRAS        <NA>        KRAS        KRAS
+    ##         ...       ...       ...         ...         ...         ...         ...
+    ##   spacer_31      TRUE  25227403        KRAS        <NA>        <NA>        KRAS
+    ##   spacer_32      TRUE  25245293        KRAS        <NA>        <NA>        KRAS
+    ##   spacer_33      TRUE  25245279        KRAS        <NA>        <NA>        KRAS
+    ##   spacer_33      TRUE  54770688        <NA>        <NA>        <NA>      KRASP1
+    ##   spacer_34      TRUE  25245382        KRAS        <NA>        <NA>        KRAS
+    ##                 introns  intergenic intergenic_distance
+    ##             <character> <character>           <integer>
+    ##    spacer_1        <NA>        <NA>                <NA>
+    ##    spacer_1        <NA>        <NA>                <NA>
+    ##    spacer_2        <NA>        <NA>                <NA>
+    ##    spacer_2        <NA>       NEPNP                7737
+    ##    spacer_3        <NA>        <NA>                <NA>
+    ##         ...         ...         ...                 ...
+    ##   spacer_31        KRAS        <NA>                <NA>
+    ##   spacer_32        <NA>        <NA>                <NA>
+    ##   spacer_33        <NA>        <NA>                <NA>
+    ##   spacer_33        <NA>        <NA>                <NA>
+    ##   spacer_34        <NA>        <NA>                <NA>
+    ##   -------
+    ##   seqinfo: 25 sequences (1 circular) from hg38 genome
+
+Similarly, the functions `onTargets` and `offTargets` return on-target
+alignments (no mismatches) and off-target alignments (having at least
+one mismatch), respectively. See `?addSpacerAlignments` for more details
+about the different options.
+
+We note that gRNAs that align to hundreds of different locations are
+highly unspecific and undesirable. This can also cause
+`addSpacerAlignments` to be slow. The function
+`addSpacerAlignmentsIterative` is an iterative version of
+`addSpacerAlignments` that curtails alignment searches for gRNAs having
+more hits than the user-defined threshold. See
+`?addSpacerAlignmentsIterative` for more information.
+
+## Removing repeat elements
+
+Many promiscuous protospacer sequences occur in repeats or
+low-complexity DNA sequences (regions identified by RepeatMasker). These
+sequences are usually not of interest due to their low specificity, and
+can be easily removed with `removeRepeats`:
+
+``` r
+data("gr.repeats.hg38", package="crisprDesignData")
+guideSet <- removeRepeats(guideSet,
+                          gr.repeats=gr.repeats.hg38)
+```
+
+## On-target scoring (gRNA efficiency)
+
+`addOnTargetScores` adds scores from on-target efficiency algorithms
+specified by the `methods` argument (or all available methods if `NULL`)
+available in the R package
+[crisprScore](https://github.com/crisprVerse/crisprScore) and appends
+them to the `GuideSet`:
+
+``` r
+guideSet <- addOnTargetScores(guideSet,
+                              methods=c("deepcpf1"))
+guideSet
+```
+
+    ## GuideSet object with 34 ranges and 20 metadata columns:
+    ##             seqnames    ranges strand |             protospacer            pam
+    ##                <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
+    ##    spacer_1    chr12  25209794      + | CATAATTACACACTTTGTCTTTG           TTTA
+    ##    spacer_2    chr12  25209811      + | TCTTTGACTTCTTTTTCTTCTTT           TTTG
+    ##    spacer_3    chr12  25209817      + | ACTTCTTTTTCTTCTTTTTACCA           TTTG
+    ##    spacer_4    chr12  25209828      + | TTCTTTTTACCATCTTTGCTCAT           TTTC
+    ##    spacer_5    chr12  25209837      + | CCATCTTTGCTCATCTTTTCTTT           TTTA
+    ##         ...      ...       ...    ... .                     ...            ...
+    ##   spacer_30    chr12  25227376      + | TCCATCAATTACTACTTGCTTCC           TTTC
+    ##   spacer_31    chr12  25227427      - | TCCCTTCTCAGGATTCCTACAGG           TTTC
+    ##   spacer_32    chr12  25245269      + | CCTCTATTGTTGGATCATATTCG           TTTA
+    ##   spacer_33    chr12  25245303      - | TGGACGAATATGATCCAACAATA           TTTG
+    ##   spacer_34    chr12  25245406      - | TTATAAGGCCTGCTGAAAATGAC           TTTA
+    ##              pam_site  cut_site      region percentGC     polyA     polyC
+    ##             <numeric> <numeric> <character> <numeric> <logical> <logical>
+    ##    spacer_1  25209794  25209818    region_8      30.4     FALSE     FALSE
+    ##    spacer_2  25209811  25209835    region_8      26.1     FALSE     FALSE
+    ##    spacer_3  25209817  25209841    region_8      26.1     FALSE     FALSE
+    ##    spacer_4  25209828  25209852    region_8      30.4     FALSE     FALSE
+    ##    spacer_5  25209837  25209861    region_8      34.8     FALSE     FALSE
+    ##         ...       ...       ...         ...       ...       ...       ...
+    ##   spacer_30  25227376  25227400    region_6      39.1     FALSE     FALSE
+    ##   spacer_31  25227427  25227403    region_6      52.2     FALSE     FALSE
+    ##   spacer_32  25245269  25245293    region_5      39.1     FALSE     FALSE
+    ##   spacer_33  25245303  25245279    region_5      34.8     FALSE     FALSE
+    ##   spacer_34  25245406  25245382    region_5      39.1      TRUE     FALSE
+    ##                 polyG     polyT startingGGGGG        n0        n1        n2
+    ##             <logical> <logical>     <logical> <numeric> <numeric> <numeric>
+    ##    spacer_1     FALSE     FALSE         FALSE         1         1         0
+    ##    spacer_2     FALSE      TRUE         FALSE         1         0         1
+    ##    spacer_3     FALSE      TRUE         FALSE         1         0         1
+    ##    spacer_4     FALSE      TRUE         FALSE         1         1         0
+    ##    spacer_5     FALSE      TRUE         FALSE         1         0         0
+    ##         ...       ...       ...           ...       ...       ...       ...
+    ##   spacer_30     FALSE     FALSE         FALSE         2         0         0
+    ##   spacer_31     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_32     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_33     FALSE     FALSE         FALSE         1         1         0
+    ##   spacer_34     FALSE     FALSE         FALSE         1         0         0
+    ##                  n0_c      n1_c      n2_c                        alignments
+    ##             <numeric> <numeric> <numeric>                     <GRangesList>
+    ##    spacer_1         1         0         0  chr12:25209794:+,chr6:54771134:-
+    ##    spacer_2         1         0         0 chr12:25209811:+,chr6:117625992:-
+    ##    spacer_3         1         0         0  chr12:25209817:+,chr5:54961047:-
+    ##    spacer_4         1         0         0  chr12:25209828:+,chr6:54771104:-
+    ##    spacer_5         1         0         0                  chr12:25209837:+
+    ##         ...       ...       ...       ...                               ...
+    ##   spacer_30         1         0         0  chr12:25227376:+,chr6:54770730:-
+    ##   spacer_31         1         0         0                  chr12:25227427:-
+    ##   spacer_32         1         0         0                  chr12:25245269:+
+    ##   spacer_33         1         0         0  chr12:25245303:-,chr6:54770664:+
+    ##   spacer_34         1         0         0                  chr12:25245406:-
+    ##             inRepeats score_deepcpf1
+    ##             <logical>      <numeric>
+    ##    spacer_1     FALSE      0.4334809
+    ##    spacer_2     FALSE      0.0121805
+    ##    spacer_3     FALSE      0.0112045
+    ##    spacer_4     FALSE      0.0116443
+    ##    spacer_5     FALSE      0.3527995
+    ##         ...       ...            ...
+    ##   spacer_30     FALSE       0.600635
+    ##   spacer_31     FALSE       0.586483
+    ##   spacer_32     FALSE       0.609269
+    ##   spacer_33     FALSE       0.596874
+    ##   spacer_34     FALSE       0.604862
+    ##   -------
+    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: AsCas12a
+
+See the [crisprScore page](https://github.com/crisprVerse/crisprScore)
+for a full description of the different scores.
 
 ## Restriction enzymes
 
@@ -891,245 +902,185 @@ and TOPMED populations, respectively.
 
 ## Filtering and ranking gRNAs
 
-Once our gRNAs are fully annotated, we can filter out unwanted gRNAs
-with the function `filterSpacers`, and rank the best remaining gRNAs
-with `rankSpacers`.
+Once gRNAs are fully annotated, it is easy to filter out any unwanted
+gRNAs since `GuideSet` objects can be subsetted like regular vectors in
+R.
 
-To se which criteria are available for filtering and ranking based on a
-particular `GuideSet` object, one can use the `validCriteria` function
-as follows:
-
-``` r
-validCriteria(guideSet)
-```
-
-    ##                attribute valueType takesTxId takesGeneId
-    ## 1                  polyA   logical     FALSE       FALSE
-    ## 2                  polyC   logical     FALSE       FALSE
-    ## 3                  polyG   logical     FALSE       FALSE
-    ## 4                  polyT   logical     FALSE       FALSE
-    ## 5          startingGGGGG   logical     FALSE       FALSE
-    ## 8                cut_cds   logical      TRUE       FALSE
-    ## 9           cut_fiveUTRs   logical      TRUE       FALSE
-    ## 10         cut_threeUTRs   logical      TRUE       FALSE
-    ## 11           cut_introns   logical      TRUE       FALSE
-    ## 12          isCommonExon   logical     FALSE        TRUE
-    ## 13    isCommonCodingExon   logical     FALSE        TRUE
-    ## 14                hasSNP   logical     FALSE       FALSE
-    ## 15             inRepeats   logical     FALSE       FALSE
-    ## 16                 EcoRI   logical     FALSE       FALSE
-    ## 17                  KpnI   logical     FALSE       FALSE
-    ## 18                 BsmBI   logical     FALSE       FALSE
-    ## 19                  BsaI   logical     FALSE       FALSE
-    ## 20                  BbsI   logical     FALSE       FALSE
-    ## 21                  PacI   logical     FALSE       FALSE
-    ## 22                  MluI   logical     FALSE       FALSE
-    ## 23        aminoAcidIndex       asc      TRUE        TRUE
-    ## 25            percentCDS       asc      TRUE        TRUE
-    ## 26             percentTx       asc      TRUE        TRUE
-    ## 27                    n0       asc     FALSE       FALSE
-    ## 28                    n1       asc     FALSE       FALSE
-    ## 29                  n0_c       asc     FALSE       FALSE
-    ## 30                  n1_c       asc     FALSE       FALSE
-    ## 31             nIsoforms      desc     FALSE        TRUE
-    ## 32       percentIsoforms      desc     FALSE        TRUE
-    ## 33       nCodingIsoforms      desc     FALSE        TRUE
-    ## 34 percentCodingIsoforms      desc     FALSE        TRUE
-    ## 35        score_deepcpf1      desc     FALSE       FALSE
-    ## 36             percentGC    ranged     FALSE       FALSE
-
-As an example, suppose that we only want to keep gRNAs that meet the
-following criteria:
-
--   have percent GC between 20% and 80%
--   do not contain a polyT strech
--   do not have EcoRI or KpnI restriction sites
+As an example, suppose that we only want to keep gRNAs that have percent
+GC between 20% and 80% and that do not contain a polyT stretch. This can
+be achieved using the following lines:
 
 ``` r
-filter_criteria <- list(percentGC=c(20, 80),
-                        polyT=FALSE,
-                        EcoRI=FALSE,
-                        KpnI=FALSE)
-guideSet <- filterSpacers(guideSet,
-                          criteria=filter_criteria)
+guideSet <- guideSet[guideSet$percentGC>=20]
+guideSet <- guideSet[guideSet$percentGC<=80]
+guideSet <- guideSet[!guideSet$polyT]
 ```
 
-The arguments for `rankSpacers` are the same, but with a subtle
-difference for `criteria`: the order of elements defines the priority
-for ranking. As an example, suppose we have the following ranking
-criteria, in order of importance:
+Similarly, it is easy to rank gRNAs based on a set of criteria using the
+regular `order` function.
 
--   few off-targets with one mismatch; preferably no such off-targets
--   high on-target score (DeepCpf1)
--   targets an exon common to all KRAS isoforms
-
-In setting up the list for `criteria`, we can see from
-`validCriteria(guideSet)` above that `n1` (off-targets with one
-mismatch) takes ascending values, `score_deephf` takes descending
-values, and `isCommonExon` requires a gene ID (Ensembl ID). For integer
-values, such as `n1`, we recommend using non-integer values in the
-`criteria` so the boundaries between ranks is unambiguous. Here’s an
-example `criteria` we will use to rank our guides:
+For instance, let’s sort gRNAs by the DeepCpf1 on-target score:
 
 ``` r
-rank_criteria <- list(n1=c(0.5, 1.5, 2.5, 5.5),
-                      score_deepcpf1=c(0.8, 0.7, 0.6, 0.5, 0.4),
-                      isCommonExon=TRUE)
-guideSet <- rankSpacers(guideSet,
-                        criteria=rank_criteria,
-                        geneId="ENSG00000133703") # required for isCommonExon!
-guideSet
+# Creating an ordering index based on the DeepCpf1 score:
+# Using the negative values to make sure higher scores are ranked first:
+o <- order(-guideSet$score_deepcpf1) 
+# Ordering the GuideSet:
+guideSet <- guideSet[o]
+head(guideSet)
 ```
 
-    ## GuideSet object with 25 ranges and 24 metadata columns:
+    ## GuideSet object with 6 ranges and 25 metadata columns:
     ##             seqnames    ranges strand |             protospacer            pam
     ##                <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
-    ##   spacer_19    chr12  25225707      - | CCTTCTAGAACAGTAGACACAAA           TTTG
     ##   spacer_24    chr12  25227223      + | AACCCACCTATAATGGTGAATAT           TTTA
-    ##   spacer_32    chr12  25245269      + | CCTCTATTGTTGGATCATATTCG           TTTA
-    ##   spacer_34    chr12  25245406      - | TTATAAGGCCTGCTGAAAATGAC           TTTA
+    ##   spacer_19    chr12  25225707      - | CCTTCTAGAACAGTAGACACAAA           TTTG
+    ##   spacer_21    chr12  25225717      + | CTACTAGGACCATAGGTACATCT           TTTC
+    ##   spacer_16    chr12  25225634      + | AATAAAAGGAATTCCATAACTTC           TTTC
+    ##   spacer_27    chr12  25227280      - | CCATAAATAATACTAAATCATTT           TTTG
     ##   spacer_14    chr12  25225598      + | AGTGTTACTTACCTGTCTTGTCT           TTTC
-    ##         ...      ...       ...    ... .                     ...            ...
-    ##    spacer_1    chr12  25209794      + | CATAATTACACACTTTGTCTTTG           TTTA
-    ##   spacer_10    chr12  25209875      + | TCGAACTAATGTATAGAAGGCAT           TTTC
-    ##   spacer_25    chr12  25227260      + | GTATTATTTATGGCAAATACACA           TTTA
-    ##   spacer_20    chr12  25225713      + | TTTCCTACTAGGACCATAGGTAC           TTTA
-    ##   spacer_28    chr12  25227288      - | TGTATTTGCCATAAATAATACTA           TTTG
     ##              pam_site  cut_site      region percentGC     polyA     polyC
     ##             <numeric> <numeric> <character> <numeric> <logical> <logical>
-    ##   spacer_19  25225707  25225683    region_7      39.1     FALSE     FALSE
     ##   spacer_24  25227223  25227247    region_6      34.8     FALSE     FALSE
-    ##   spacer_32  25245269  25245293    region_5      39.1     FALSE     FALSE
-    ##   spacer_34  25245406  25245382    region_5      39.1      TRUE     FALSE
+    ##   spacer_19  25225707  25225683    region_7      39.1     FALSE     FALSE
+    ##   spacer_21  25225717  25225741    region_7      43.5     FALSE     FALSE
+    ##   spacer_16  25225634  25225658    region_7      26.1      TRUE     FALSE
+    ##   spacer_27  25227280  25227256    region_6      17.4     FALSE     FALSE
     ##   spacer_14  25225598  25225622    region_7      39.1     FALSE     FALSE
-    ##         ...       ...       ...         ...       ...       ...       ...
-    ##    spacer_1  25209794  25209818    region_8      30.4     FALSE     FALSE
-    ##   spacer_10  25209875  25209899    region_8      34.8     FALSE     FALSE
-    ##   spacer_25  25227260  25227284    region_6      26.1     FALSE     FALSE
-    ##   spacer_20  25225713  25225737    region_7      43.5     FALSE     FALSE
-    ##   spacer_28  25227288  25227264    region_6      21.7     FALSE     FALSE
-    ##                 polyG     polyT startingGGGGG        n0        n1      n0_c
+    ##                 polyG     polyT startingGGGGG        n0        n1        n2
     ##             <logical> <logical>     <logical> <numeric> <numeric> <numeric>
-    ##   spacer_19     FALSE     FALSE         FALSE         2         0         1
-    ##   spacer_24     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_32     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_34     FALSE     FALSE         FALSE         1         0         1
-    ##   spacer_14     FALSE     FALSE         FALSE         1         0         1
-    ##         ...       ...       ...           ...       ...       ...       ...
-    ##    spacer_1     FALSE     FALSE         FALSE         1         1         1
-    ##   spacer_10     FALSE     FALSE         FALSE         1         1         1
-    ##   spacer_25     FALSE     FALSE         FALSE         1         1         1
-    ##   spacer_20     FALSE     FALSE         FALSE         1         1         1
-    ##   spacer_28     FALSE     FALSE         FALSE         1         1         1
-    ##                  n1_c                       alignments inRepeats score_deepcpf1
-    ##             <numeric>                    <GRangesList> <logical>      <numeric>
-    ##   spacer_19         0 chr12:25225707:-,chr6:54770950:+     FALSE       0.811090
-    ##   spacer_24         0                 chr12:25227223:+     FALSE       0.826290
-    ##   spacer_32         0                 chr12:25245269:+     FALSE       0.609269
-    ##   spacer_34         0                 chr12:25245406:-     FALSE       0.604862
-    ##   spacer_14         0                 chr12:25225598:+     FALSE       0.665542
-    ##         ...       ...                              ...       ...            ...
-    ##    spacer_1         0 chr12:25209794:+,chr6:54771134:-     FALSE       0.433481
-    ##   spacer_10         0 chr12:25209875:+,chr6:54771071:-     FALSE       0.420667
-    ##   spacer_25         0 chr12:25227260:+,chr6:54770857:-     FALSE       0.450444
-    ##   spacer_20         0 chr12:25225713:+,chr6:54770944:-     FALSE       0.321628
-    ##   spacer_28         0 chr12:25227288:-,chr6:54770829:+     FALSE       0.330468
-    ##                  enzymeAnnotation
-    ##              <SplitDataFrameList>
-    ##   spacer_19 FALSE:FALSE:FALSE:...
-    ##   spacer_24 FALSE:FALSE:FALSE:...
-    ##   spacer_32 FALSE:FALSE:FALSE:...
-    ##   spacer_34 FALSE:FALSE:FALSE:...
-    ##   spacer_14 FALSE:FALSE:FALSE:...
-    ##         ...                   ...
-    ##    spacer_1 FALSE:FALSE:FALSE:...
-    ##   spacer_10 FALSE:FALSE:FALSE:...
-    ##   spacer_25 FALSE:FALSE:FALSE:...
-    ##   spacer_20 FALSE:FALSE:FALSE:...
-    ##   spacer_28 FALSE:FALSE:FALSE:...
+    ##   spacer_24     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_19     FALSE     FALSE         FALSE         2         0         0
+    ##   spacer_21     FALSE     FALSE         FALSE         1         1         0
+    ##   spacer_16     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_27     FALSE     FALSE         FALSE         1         1         0
+    ##   spacer_14     FALSE     FALSE         FALSE         1         0         0
+    ##                  n0_c      n1_c      n2_c                       alignments
+    ##             <numeric> <numeric> <numeric>                    <GRangesList>
+    ##   spacer_24         1         0         0                 chr12:25227223:+
+    ##   spacer_19         1         0         0 chr12:25225707:-,chr6:54770950:+
+    ##   spacer_21         1         0         0 chr12:25225717:+,chr6:54770940:-
+    ##   spacer_16         1         0         0                 chr12:25225634:+
+    ##   spacer_27         1         0         0 chr12:25227280:-,chr6:54770837:+
+    ##   spacer_14         1         0         0                 chr12:25225598:+
+    ##             inRepeats score_deepcpf1      enzymeAnnotation
+    ##             <logical>      <numeric>  <SplitDataFrameList>
+    ##   spacer_24     FALSE       0.826290 FALSE:FALSE:FALSE:...
+    ##   spacer_19     FALSE       0.811090 FALSE:FALSE:FALSE:...
+    ##   spacer_21     FALSE       0.744766 FALSE:FALSE:FALSE:...
+    ##   spacer_16     FALSE       0.685073  TRUE:FALSE:FALSE:...
+    ##   spacer_27     FALSE       0.665761 FALSE:FALSE:FALSE:...
+    ##   spacer_14     FALSE       0.665542 FALSE:FALSE:FALSE:...
     ##                                                                 geneAnnotation
     ##                                                           <SplitDataFrameList>
-    ##   spacer_19                      chr12:25225683:-:...,chr12:25225683:-:...,...
     ##   spacer_24                      chr12:25227247:+:...,chr12:25227247:+:...,...
-    ##   spacer_32 chr12:25245293:+:...,chr12:25245293:+:...,chr12:25245293:+:...,...
-    ##   spacer_34 chr12:25245382:-:...,chr12:25245382:-:...,chr12:25245382:-:...,...
+    ##   spacer_19                      chr12:25225683:-:...,chr12:25225683:-:...,...
+    ##   spacer_21                      chr12:25225741:+:...,chr12:25225741:+:...,...
+    ##   spacer_16 chr12:25225658:+:...,chr12:25225658:+:...,chr12:25225658:+:...,...
+    ##   spacer_27                      chr12:25227256:-:...,chr12:25227256:-:...,...
     ##   spacer_14 chr12:25225622:+:...,chr12:25225622:+:...,chr12:25225622:+:...,...
-    ##         ...                                                                ...
-    ##    spacer_1 chr12:25209818:+:...,chr12:25209818:+:...,chr12:25209818:+:...,...
-    ##   spacer_10 chr12:25209899:+:...,chr12:25209899:+:...,chr12:25209899:+:...,...
-    ##   spacer_25                      chr12:25227284:+:...,chr12:25227284:+:...,...
-    ##   spacer_20                      chr12:25225737:+:...,chr12:25225737:+:...,...
-    ##   spacer_28                      chr12:25227264:-:...,chr12:25227264:-:...,...
     ##                    tssAnnotation    hasSNP                 snps
     ##             <SplitDataFrameList> <logical> <SplitDataFrameList>
-    ##   spacer_19             :...,...     FALSE             :...,...
     ##   spacer_24             :...,...     FALSE             :...,...
-    ##   spacer_32             :...,...     FALSE             :...,...
-    ##   spacer_34             :...,...     FALSE             :...,...
+    ##   spacer_19             :...,...     FALSE             :...,...
+    ##   spacer_21             :...,...     FALSE             :...,...
+    ##   spacer_16             :...,...     FALSE             :...,...
+    ##   spacer_27             :...,...     FALSE             :...,...
     ##   spacer_14             :...,...     FALSE             :...,...
-    ##         ...                  ...       ...                  ...
-    ##    spacer_1             :...,...     FALSE             :...,...
-    ##   spacer_10             :...,...     FALSE             :...,...
-    ##   spacer_25             :...,...     FALSE             :...,...
-    ##   spacer_20             :...,...     FALSE             :...,...
-    ##   spacer_28             :...,...     FALSE             :...,...
-    ##                       rankings
-    ##                   <data.frame>
-    ##   spacer_19  spacer_19:2:1:...
-    ##   spacer_24  spacer_24:2:1:...
-    ##   spacer_32  spacer_32:7:1:...
-    ##   spacer_34  spacer_34:7:1:...
-    ##   spacer_14  spacer_14:8:1:...
-    ##         ...                ...
-    ##    spacer_1  spacer_1:32:2:...
-    ##   spacer_10 spacer_10:32:2:...
-    ##   spacer_25 spacer_25:32:2:...
-    ##   spacer_20 spacer_20:35:2:...
-    ##   spacer_28 spacer_28:35:2:...
     ##   -------
     ##   seqinfo: 640 sequences (1 circular) from hg38 genome
     ##   crisprNuclease: AsCas12a
 
-Our `guideSet` is now sorted according to our criteria, with the best
-guides first. For a more detailed look at the rankings, we can look at
-the appended column:
+One can also sort gRNAs using several annotation columns. For instance,
+let’s sort gRNAs using the DeepCpf1 score, but also by prioritizing
+first gRNAs that have no 1-mismatch off-targets in coding regions:
 
 ``` r
-guideSet$rankings
+o <- order(guideSet$n1_c, -guideSet$score_deepcpf1) 
+# Ordering the GuideSet:
+guideSet <- guideSet[o]
+head(guideSet)
 ```
 
-    ##                  id rank bin1_n1 bin1_score_deepcpf1 bin1_isCommonExon
-    ## spacer_19 spacer_19    2       1                   1                 2
-    ## spacer_24 spacer_24    2       1                   1                 2
-    ## spacer_32 spacer_32    7       1                   3                 1
-    ## spacer_34 spacer_34    7       1                   3                 1
-    ## spacer_14 spacer_14    8       1                   3                 2
-    ## spacer_18 spacer_18    8       1                   3                 2
-    ## spacer_30 spacer_30    8       1                   3                 2
-    ## spacer_9   spacer_9   11       1                   4                 2
-    ## spacer_11 spacer_11   11       1                   4                 2
-    ## spacer_22 spacer_22   11       1                   4                 2
-    ## spacer_23 spacer_23   11       1                   4                 2
-    ## spacer_31 spacer_31   11       1                   4                 2
-    ## spacer_17 spacer_17   14       1                   5                 2
-    ## spacer_26 spacer_26   14       1                   5                 2
-    ## spacer_12 spacer_12   17       1                   6                 2
-    ## spacer_13 spacer_13   17       1                   6                 2
-    ## spacer_15 spacer_15   17       1                   6                 2
-    ## spacer_29 spacer_29   17       1                   6                 2
-    ## spacer_21 spacer_21   23       2                   2                 2
-    ## spacer_33 spacer_33   28       2                   4                 1
-    ## spacer_1   spacer_1   32       2                   5                 2
-    ## spacer_10 spacer_10   32       2                   5                 2
-    ## spacer_25 spacer_25   32       2                   5                 2
-    ## spacer_20 spacer_20   35       2                   6                 2
-    ## spacer_28 spacer_28   35       2                   6                 2
+    ## GuideSet object with 6 ranges and 25 metadata columns:
+    ##             seqnames    ranges strand |             protospacer            pam
+    ##                <Rle> <IRanges>  <Rle> |          <DNAStringSet> <DNAStringSet>
+    ##   spacer_24    chr12  25227223      + | AACCCACCTATAATGGTGAATAT           TTTA
+    ##   spacer_19    chr12  25225707      - | CCTTCTAGAACAGTAGACACAAA           TTTG
+    ##   spacer_21    chr12  25225717      + | CTACTAGGACCATAGGTACATCT           TTTC
+    ##   spacer_16    chr12  25225634      + | AATAAAAGGAATTCCATAACTTC           TTTC
+    ##   spacer_27    chr12  25227280      - | CCATAAATAATACTAAATCATTT           TTTG
+    ##   spacer_14    chr12  25225598      + | AGTGTTACTTACCTGTCTTGTCT           TTTC
+    ##              pam_site  cut_site      region percentGC     polyA     polyC
+    ##             <numeric> <numeric> <character> <numeric> <logical> <logical>
+    ##   spacer_24  25227223  25227247    region_6      34.8     FALSE     FALSE
+    ##   spacer_19  25225707  25225683    region_7      39.1     FALSE     FALSE
+    ##   spacer_21  25225717  25225741    region_7      43.5     FALSE     FALSE
+    ##   spacer_16  25225634  25225658    region_7      26.1      TRUE     FALSE
+    ##   spacer_27  25227280  25227256    region_6      17.4     FALSE     FALSE
+    ##   spacer_14  25225598  25225622    region_7      39.1     FALSE     FALSE
+    ##                 polyG     polyT startingGGGGG        n0        n1        n2
+    ##             <logical> <logical>     <logical> <numeric> <numeric> <numeric>
+    ##   spacer_24     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_19     FALSE     FALSE         FALSE         2         0         0
+    ##   spacer_21     FALSE     FALSE         FALSE         1         1         0
+    ##   spacer_16     FALSE     FALSE         FALSE         1         0         0
+    ##   spacer_27     FALSE     FALSE         FALSE         1         1         0
+    ##   spacer_14     FALSE     FALSE         FALSE         1         0         0
+    ##                  n0_c      n1_c      n2_c                       alignments
+    ##             <numeric> <numeric> <numeric>                    <GRangesList>
+    ##   spacer_24         1         0         0                 chr12:25227223:+
+    ##   spacer_19         1         0         0 chr12:25225707:-,chr6:54770950:+
+    ##   spacer_21         1         0         0 chr12:25225717:+,chr6:54770940:-
+    ##   spacer_16         1         0         0                 chr12:25225634:+
+    ##   spacer_27         1         0         0 chr12:25227280:-,chr6:54770837:+
+    ##   spacer_14         1         0         0                 chr12:25225598:+
+    ##             inRepeats score_deepcpf1      enzymeAnnotation
+    ##             <logical>      <numeric>  <SplitDataFrameList>
+    ##   spacer_24     FALSE       0.826290 FALSE:FALSE:FALSE:...
+    ##   spacer_19     FALSE       0.811090 FALSE:FALSE:FALSE:...
+    ##   spacer_21     FALSE       0.744766 FALSE:FALSE:FALSE:...
+    ##   spacer_16     FALSE       0.685073  TRUE:FALSE:FALSE:...
+    ##   spacer_27     FALSE       0.665761 FALSE:FALSE:FALSE:...
+    ##   spacer_14     FALSE       0.665542 FALSE:FALSE:FALSE:...
+    ##                                                                 geneAnnotation
+    ##                                                           <SplitDataFrameList>
+    ##   spacer_24                      chr12:25227247:+:...,chr12:25227247:+:...,...
+    ##   spacer_19                      chr12:25225683:-:...,chr12:25225683:-:...,...
+    ##   spacer_21                      chr12:25225741:+:...,chr12:25225741:+:...,...
+    ##   spacer_16 chr12:25225658:+:...,chr12:25225658:+:...,chr12:25225658:+:...,...
+    ##   spacer_27                      chr12:25227256:-:...,chr12:25227256:-:...,...
+    ##   spacer_14 chr12:25225622:+:...,chr12:25225622:+:...,chr12:25225622:+:...,...
+    ##                    tssAnnotation    hasSNP                 snps
+    ##             <SplitDataFrameList> <logical> <SplitDataFrameList>
+    ##   spacer_24             :...,...     FALSE             :...,...
+    ##   spacer_19             :...,...     FALSE             :...,...
+    ##   spacer_21             :...,...     FALSE             :...,...
+    ##   spacer_16             :...,...     FALSE             :...,...
+    ##   spacer_27             :...,...     FALSE             :...,...
+    ##   spacer_14             :...,...     FALSE             :...,...
+    ##   -------
+    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: AsCas12a
 
-The data frame contains a column for the bin value of each criterion,
-along with an absolute score in the `rank` column, where a rank of “1”
-indicates a guide that meets the highest specified level (bin value of
-1) for each of our criteria (in this example, that would translate to
-`n1<=0.5 && score_deepcpf1>0.8 && isCommonExon==TRUE`).
+The `rankSpacers` function is a convenience function that implements our
+recommended rankings for the SpCas9, enAsCas12a and CasRx nucleases. For
+a detailed description of our recommended rankings, see the
+documentation of `rankSpacers` by typing `?rankSpacers`.
+
+If an Ensembl transcript ID is provided, the ranking function will also
+take into account the position of the gRNA within the target CDS of the
+transcript ID in the ranking procedure. Our recommendation is to specify
+the Ensembl canonical transcript as the representative transcript for
+the gene. In our example, ENST00000311936 is the canonical transcript
+for KRAS:
+
+``` r
+tx_id <- "ENST00000311936"
+guideSet <- rankSpacers(guideSet,
+                        tx_id=tx_id)
+head(guideSet)
+```
 
 # Session Info
 
@@ -1137,7 +1088,7 @@ indicates a guide that meets the highest specified level (bin value of
 sessionInfo()
 ```
 
-    ## R Under development (unstable) (2022-03-21 r81954)
+    ## R version 4.2.1 (2022-06-23)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Catalina 10.15.7
     ## 
@@ -1153,63 +1104,64 @@ sessionInfo()
     ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.64.0                  
-    ##  [3] rtracklayer_1.55.4                Biostrings_2.64.0                
-    ##  [5] XVector_0.35.0                    GenomicRanges_1.48.0             
-    ##  [7] GenomeInfoDb_1.32.2               IRanges_2.30.0                   
-    ##  [9] S4Vectors_0.33.11                 BiocGenerics_0.42.0              
-    ## [11] crisprDesignData_0.99.13          crisprDesign_0.99.115            
-    ## [13] crisprBase_1.1.3                 
+    ##  [1] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.65.2                  
+    ##  [3] rtracklayer_1.57.0                Biostrings_2.65.2                
+    ##  [5] XVector_0.37.0                    GenomicRanges_1.49.1             
+    ##  [7] GenomeInfoDb_1.33.5               IRanges_2.31.2                   
+    ##  [9] S4Vectors_0.35.1                  BiocGenerics_0.43.1              
+    ## [11] crisprDesignData_0.99.17          crisprDesign_0.99.133            
+    ## [13] crisprBase_1.1.5                 
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] bitops_1.0-7                  matrixStats_0.61.0           
+    ##   [1] bitops_1.0-7                  matrixStats_0.62.0           
     ##   [3] bit64_4.0.5                   filelock_1.0.2               
-    ##   [5] progress_1.2.2                httr_1.4.2                   
-    ##   [7] tools_4.2.0                   utf8_1.2.2                   
-    ##   [9] R6_2.5.1                      DBI_1.1.2                    
+    ##   [5] progress_1.2.2                httr_1.4.4                   
+    ##   [7] tools_4.2.1                   utf8_1.2.2                   
+    ##   [9] R6_2.5.1                      DBI_1.1.3                    
     ##  [11] tidyselect_1.1.2              prettyunits_1.1.1            
     ##  [13] bit_4.0.4                     curl_4.3.2                   
-    ##  [15] compiler_4.2.0                crisprBowtie_1.1.1           
-    ##  [17] cli_3.3.0                     Biobase_2.55.0               
+    ##  [15] compiler_4.2.1                crisprBowtie_1.1.1           
+    ##  [17] cli_3.3.0                     Biobase_2.57.1               
     ##  [19] basilisk.utils_1.9.1          crisprScoreData_1.1.3        
-    ##  [21] xml2_1.3.3                    DelayedArray_0.21.2          
-    ##  [23] randomForest_4.7-1            readr_2.1.2                  
-    ##  [25] rappdirs_0.3.3                stringr_1.4.0                
-    ##  [27] digest_0.6.29                 Rsamtools_2.11.0             
-    ##  [29] rmarkdown_2.13                crisprScore_1.1.13           
+    ##  [21] xml2_1.3.3                    DelayedArray_0.23.1          
+    ##  [23] randomForest_4.7-1.1          readr_2.1.2                  
+    ##  [25] rappdirs_0.3.3                stringr_1.4.1                
+    ##  [27] digest_0.6.29                 Rsamtools_2.13.4             
+    ##  [29] rmarkdown_2.15.2              crisprScore_1.1.14           
     ##  [31] basilisk_1.9.2                pkgconfig_2.0.3              
-    ##  [33] htmltools_0.5.2               MatrixGenerics_1.7.0         
-    ##  [35] dbplyr_2.1.1                  fastmap_1.1.0                
-    ##  [37] rlang_1.0.4                   rstudioapi_0.13              
-    ##  [39] RSQLite_2.2.12                shiny_1.7.1                  
-    ##  [41] BiocIO_1.5.0                  generics_0.1.2               
+    ##  [33] htmltools_0.5.3               MatrixGenerics_1.9.1         
+    ##  [35] dbplyr_2.2.1                  fastmap_1.1.0                
+    ##  [37] rlang_1.0.4                   rstudioapi_0.14              
+    ##  [39] RSQLite_2.2.16                shiny_1.7.2                  
+    ##  [41] BiocIO_1.7.1                  generics_0.1.3               
     ##  [43] jsonlite_1.8.0                vroom_1.5.7                  
-    ##  [45] BiocParallel_1.29.18          dplyr_1.0.8                  
-    ##  [47] VariantAnnotation_1.41.3      RCurl_1.98-1.6               
-    ##  [49] magrittr_2.0.2                GenomeInfoDbData_1.2.7       
-    ##  [51] Matrix_1.4-0                  Rcpp_1.0.8.3                 
-    ##  [53] fansi_1.0.2                   reticulate_1.25              
-    ##  [55] Rbowtie_1.36.0                lifecycle_1.0.1              
-    ##  [57] stringi_1.7.6                 yaml_2.3.5                   
-    ##  [59] SummarizedExperiment_1.25.3   zlibbioc_1.41.0              
-    ##  [61] BiocFileCache_2.3.4           AnnotationHub_3.3.9          
-    ##  [63] grid_4.2.0                    blob_1.2.2                   
-    ##  [65] promises_1.2.0.1              parallel_4.2.0               
-    ##  [67] ExperimentHub_2.3.5           crayon_1.5.0                 
-    ##  [69] crisprBwa_1.1.2               dir.expiry_1.3.0             
-    ##  [71] lattice_0.20-45               GenomicFeatures_1.47.13      
-    ##  [73] hms_1.1.1                     KEGGREST_1.35.0              
-    ##  [75] knitr_1.37                    pillar_1.7.0                 
-    ##  [77] rjson_0.2.21                  biomaRt_2.51.3               
-    ##  [79] BiocVersion_3.15.0            XML_3.99-0.9                 
-    ##  [81] glue_1.6.2                    evaluate_0.15                
-    ##  [83] BiocManager_1.30.16           httpuv_1.6.5                 
-    ##  [85] png_0.1-7                     vctrs_0.3.8                  
-    ##  [87] tzdb_0.2.0                    purrr_0.3.4                  
-    ##  [89] assertthat_0.2.1              cachem_1.0.6                 
-    ##  [91] xfun_0.30                     mime_0.12                    
-    ##  [93] Rbwa_1.1.0                    xtable_1.8-4                 
-    ##  [95] restfulr_0.0.13               later_1.3.0                  
-    ##  [97] tibble_3.1.6                  GenomicAlignments_1.31.2     
-    ##  [99] AnnotationDbi_1.57.1          memoise_2.0.1                
-    ## [101] interactiveDisplayBase_1.33.0 ellipsis_0.3.2
+    ##  [45] BiocParallel_1.31.12          dplyr_1.0.9                  
+    ##  [47] VariantAnnotation_1.43.3      RCurl_1.98-1.8               
+    ##  [49] magrittr_2.0.3                GenomeInfoDbData_1.2.8       
+    ##  [51] Matrix_1.4-1                  Rcpp_1.0.9                   
+    ##  [53] fansi_1.0.3                   reticulate_1.25              
+    ##  [55] Rbowtie_1.37.0                lifecycle_1.0.1              
+    ##  [57] stringi_1.7.8                 yaml_2.3.5                   
+    ##  [59] SummarizedExperiment_1.27.1   zlibbioc_1.43.0              
+    ##  [61] BiocFileCache_2.5.0           AnnotationHub_3.5.0          
+    ##  [63] grid_4.2.1                    blob_1.2.3                   
+    ##  [65] promises_1.2.0.1              parallel_4.2.1               
+    ##  [67] ExperimentHub_2.5.0           crayon_1.5.1                 
+    ##  [69] crisprBwa_1.1.3               dir.expiry_1.5.0             
+    ##  [71] lattice_0.20-45               GenomicFeatures_1.49.6       
+    ##  [73] hms_1.1.2                     KEGGREST_1.37.3              
+    ##  [75] knitr_1.40                    pillar_1.8.1                 
+    ##  [77] rjson_0.2.21                  codetools_0.2-18             
+    ##  [79] biomaRt_2.53.2                BiocVersion_3.16.0           
+    ##  [81] XML_3.99-0.10                 glue_1.6.2                   
+    ##  [83] evaluate_0.16                 BiocManager_1.30.18          
+    ##  [85] httpuv_1.6.5                  png_0.1-7                    
+    ##  [87] vctrs_0.4.1                   tzdb_0.3.0                   
+    ##  [89] purrr_0.3.4                   assertthat_0.2.1             
+    ##  [91] cachem_1.0.6                  xfun_0.32                    
+    ##  [93] mime_0.12                     Rbwa_1.1.0                   
+    ##  [95] xtable_1.8-4                  restfulr_0.0.15              
+    ##  [97] later_1.3.0                   tibble_3.1.8                 
+    ##  [99] GenomicAlignments_1.33.1      AnnotationDbi_1.59.1         
+    ## [101] memoise_2.0.1                 interactiveDisplayBase_1.35.0
+    ## [103] ellipsis_0.3.2

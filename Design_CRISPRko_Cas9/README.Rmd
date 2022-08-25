@@ -1,5 +1,6 @@
 ---
-title: "Using crisprDesign to design gRNAs for CRISPRko with the SpCas9 nuclease"
+title: "Design gRNAs for CRISPRko with the SpCas9 nuclease"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -9,51 +10,92 @@ output:
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
 
 
 # Introduction
 
-In this tutorial, we illustrate the main functionalities of  `crisprDesign`, the central package of the `crisprVerse` ecosystem, by designing CRISPR/Cas9 gRNAs targeting the coding sequence of the human gene KRAS. Most steps described in the tutorial are applicable to any genomic target.
+In this tutorial, we illustrate the main functionalities of  [crisprDesign](https://github.com/crisprVerse/crisprDesign), 
+the central package of the crisprVerse ecosystem, by designing 
+CRISPR/Cas9 gRNAs targeting the coding sequence of the human gene KRAS. 
+Most steps described in the tutorial are applicable to any genomic target.
 
 # Some terminology before we get started
 
-Before we start designing gRNAs, we first introduce some terminology that will be useful throughout this and subsequent tutorials. 
-CRISPR nucleases require two binding components for cleavage. First, the nuclease needs to recognize a constant nucleotide motif in the target DNA called the protospacer adjacent motif (PAM) sequence. Second, the gRNA, which guides the nuclease to the target sequence, needs to bind to a complementary sequence adjacent to the PAM sequence, called the **protospacer** sequence. The latter can be thought of as a variable binding motif that can be specified by designing corresponding gRNA sequences.
+Before we start designing gRNAs, we first introduce some terminology 
+that will be useful throughout this and subsequent tutorials. 
+CRISPR nucleases require two binding components for cleavage. 
+First, the nuclease needs to recognize a constant nucleotide motif in 
+the target DNA called the protospacer adjacent motif (PAM) sequence. Second,
+the gRNA, which guides the nuclease to the target sequence, needs to bind 
+to a complementary sequence adjacent to the PAM sequence, called 
+the **protospacer** sequence. The latter can be thought of as a variable
+binding motif that can be specified by designing corresponding gRNA sequences.
 
-The **spacer** sequence is used in the gRNA construct to guide the CRISPR nuclease to the target **protospacer** sequence in the host genome. While a gRNA spacer sequence may not always uniquely target the host genome (i.e. it may map to multiple protospacers in the host genome), we can, for a given reference genome, uniquely identify a protospacer  sequence with a combination of 3 attributes: 
+The **spacer** sequence is used in the gRNA construct to guide the CRISPR 
+nuclease to the target **protospacer** sequence in the host genome. While 
+a gRNA spacer sequence may not always uniquely target the host genome (i.e. 
+it may map to multiple protospacers in the host genome), we can, for a 
+given reference genome, uniquely identify a protospacer  sequence with a 
+combination of 3 attributes: 
 
 - `chr`: chromosome name 
 - `strand`: forward (+) or reverse (-)
 - `pam_site`: genomic coordinate of the first nucleotide of the nuclease-specific PAM sequence; for SpCas9 this is the "N" in the NGG PAM sequence
 
-For CRISPRko applications, we use an additional genomic coordinate, called `cut_site`, to represent where the double-stranded break (DSB) occurs. For SpCas9, the cut site (blunt-ended dsDNA break) is located 4nt upstream of the pam_site (PAM-proximal editing).
+For CRISPRko applications, we use an additional genomic coordinate, 
+called `cut_site`, to represent where the double-stranded break (DSB) 
+occurs. For SpCas9, the cut site (blunt-ended dsDNA break) is located 
+4nt upstream of the pam_site (PAM-proximal editing).
+
+
+# Installation
+
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
+
 
 # End-to-end gRNA design workflow
 
 
-We first start by loading the package as usual:
+We first start by loading the crisprVerse packages needed for 
+this tutorial:
 
-```{r, message=FALSE, warning=FALSE, results='hide' }
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(crisprBase)
 library(crisprDesign)
+library(crisprDesignData)
+```
+
+We will also load the `BSgenome` package containing DNA sequences for the hg38
+genome:
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
 
 ##  Nuclease specification
 
-We load the `SpCas9` nuclease object from the `crisprBase` package (see the `crisprBase` [vignette](https://github.com/Jfortin1/crisprBase) for instructions on how to create or load alternative nucleases):
+We first load the `SpCas9` nuclease object from the `crisprBase` package:
 
 ```{r}
-library(crisprBase)
 data(SpCas9, package="crisprBase")
 SpCas9
 ```
 
-The three motifs (NGG, NAG and NGA) represent the recognized PAM sequences by SpCas9, and the weights indicate a recognition score. The canonical PAM sequence NGG is fully recognized (weight of 1), while the two non-canonical PAM sequences NAG and NGA are much less tolerated. 
+To learn how to specify a custom nuclease, see the [nuclease tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease).
 
-The spacer sequence is located on the 5-prime end with respect to the PAM sequence, and the default spacer sequence length is 20 nucleotides. If necessary, one can change the spacer length using the function `crisprBase::spacerLength`. We can inspect the protospacer construct by using `prototypeSequence`:
+
+The three motifs (NGG, NAG and NGA) represent the recognized PAM sequences 
+by SpCas9, and the weights indicate a recognition score. The canonical 
+PAM sequence NGG is fully recognized (weight of 1), while the two 
+non-canonical PAM sequences NAG and NGA are much less tolerated. 
+
+The spacer sequence is located on the 5-prime end with respect to the PAM 
+sequence, and the default spacer sequence length is 20 nucleotides. If 
+necessary, one can change the spacer length using the function `spacerLength` 
+from `crisprBase`. We can inspect the protospacer construct by
+using `prototypeSequence`:
 
 ```{r}
 prototypeSequence(SpCas9)
@@ -62,13 +104,21 @@ prototypeSequence(SpCas9)
 
 ## Specification of the target DNA sequence (KRAS CDS)
 
-Since we aim to design gRNAs that knock out the human KRAS gene, we first need to retrieve the DNA sequence of the coding region (CDS) of KRAS. We show in this [tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) how to build convenient gene model objects that allows to quickly access gene-specific sequences. Here, we obtain from `crisprDesignData` a `GRangesList` object that defines the genomic coordinates (in hg38 coordinates) of coding genes in the human genome: 
+Since we aim to design gRNAs that knock out the human KRAS gene, we first 
+need to retrieve the DNA sequence of the coding region (CDS) of KRAS. W
+e show in the [gene annotation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) 
+how to build convenient gene model objects that allows to quickly access 
+gene-specific sequences. Here, we obtain from `crisprDesignData` a 
+`GRangesList` object that defines the genomic coordinates (in hg38 coordinates)
+of coding genes in the human genome: 
 
 ```{r}
 data(txdb_human, package="crisprDesignData")
 ```
 
-The `queryTxObject` function allows us to query this object for a specific gene and feature. Here, we obtain a `GRanges` object containing the CDS coordinates of KRAS:
+The `queryTxObject` function allows us to query this object for
+a specific gene and feature. Here, we obtain a `GRanges` object 
+containing the CDS coordinates of KRAS:
 
 ```{r echo=TRUE, results='hide', warning=FALSE, message=FALSE}
 gr <- queryTxObject(txObject=txdb_human,
@@ -77,13 +127,15 @@ gr <- queryTxObject(txObject=txdb_human,
                     queryValue="KRAS")
 ```
 
-To simplify our design, we will only consider exons that constitute the primary transcript of the gene (transcript ID: ENST00000311936).
+To simplify our design, we will only consider exons that constitute 
+the primary transcript of KRAS (transcript ID ENST00000311936).
 
 ```{r}
 gr <- gr[gr$tx_id == "ENST00000311936"]
 ```
 
-Optionally, we could also adjust the arguments in our call to `queryTxObject` to retrieve those transcript-specific coordinates:
+Optionally, we could also adjust the arguments in our call to 
+`queryTxObject` to retrieve those transcript-specific coordinates:
 
 ```{r, eval=FALSE}
 gr <- queryTxObject(txObject=txObject,
@@ -95,10 +147,13 @@ gr <- queryTxObject(txObject=txObject,
 
 ## Finding spacer sequences targeting KRAS
 
-`findSpacers` is the main function of `crisprDesign` for obtaining all possible spacer sequences that target protospacers located in our target DNA sequence(s). If a `GRanges` object is provided as input, a `BSgenome` object (an object that contains sequences of a reference genome) must be provided as well:
+`findSpacers` is the main function of `crisprDesign` for obtaining 
+all possible spacer sequences that target protospacers located in our 
+target DNA sequence(s). If a `GRanges` object is provided as input,
+a `BSgenome` object (an object that contains sequences of a reference
+genome) must be provided as well:
 
 ```{r, warning=FALSE, message=FALSE}
-library(BSgenome.Hsapiens.UCSC.hg38)
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 guideSet <- findSpacers(gr,
                         bsgenome=bsgenome,
@@ -106,9 +161,14 @@ guideSet <- findSpacers(gr,
 guideSet
 ```
 
-This function returns a `GuideSet` object that stores the genomic coordinates (PAM sites) for all spacer sequences found in the regions provided by `gr`. The `GuideSet` object is an extension of a `GenomicRanges` object that stores additional information about gRNAs. 
+This function returns a `GuideSet` object that stores the genomic 
+coordinates (PAM sites) for all spacer sequences found in the regions 
+provided by `gr`. The `GuideSet` object is an extension of a `GenomicRanges`
+object that stores additional information about gRNAs. 
 
-There are several accessor functions we can use to extract information about the spacer sequences in `guideSet`, and here are a few examples with their corresponding outputs:
+There are several accessor functions we can use to extract information 
+about the spacer sequences in `guideSet`, and here are a few examples 
+with their corresponding outputs:
 
 ```{r}
 spacers(guideSet)
@@ -121,13 +181,16 @@ head(cutSites(guideSet))
 
 ## Characterizing gRNA spacer sequences
 
-There are specific spacer sequence features, independent of the genomic context of the protospacer sequence, that can reduce or even eliminate gRNA activity:
+There are specific spacer sequence features, independent of the genomic
+context of the protospacer sequence, that can reduce or even eliminate 
+gRNA activity:
 
 - **Poly-T stretches**: four or more consecutive T nucleotides in the spacer sequence may act as a transcriptional termination signal for the U6 promoter.
 - **Self-complementarity**: complementary sites with the gRNA backbone can compete with the targeted genomic sequence.
 - **Percent GC**: gRNAs with GC content between 20% and 80% are preferred.
 
-Use the function `addSequenceFeatures` to evaluate the spacer sequences with respect to these characteristics and add the results to the `GuideSet` object:
+Use the function `addSequenceFeatures` to evaluate the spacer sequences
+with respect to these characteristics and add the results to the `GuideSet` object:
 
 ```{r, eval=TRUE,warning=FALSE, message=FALSE}
 guideSet <- addSequenceFeatures(guideSet)
@@ -137,9 +200,21 @@ head(guideSet)
 
 ## Off-target search with bowtie
 
-In order to select gRNAs that are most specific to our target of interest, it is important to avoid gRNAs that target additional loci in the genome with either perfect sequence complementarity (multiple on-targets), or imperfect complementarity through tolerated mismatches (off-targets). As the SpCas9 nuclease can tolerate mismatches between the gRNA spacer sequence (RNA) and the protospacer sequence (DNA), it is necessary to characterize off-targets to minimize the introduction of double-stranded breaks (DSBs) beyond our intended target.
+In order to select gRNAs that are most specific to our target of 
+interest, it is important to avoid gRNAs that target additional loci in 
+the genome with either perfect sequence complementarity (multiple on-targets),
+or imperfect complementarity through tolerated mismatches (off-targets). 
+As the SpCas9 nuclease can tolerate mismatches between the gRNA spacer 
+sequence (RNA) and the protospacer sequence (DNA), it is necessary to 
+characterize off-targets to minimize the introduction of double-stranded
+breaks (DSBs) beyond our intended target.
 
-The `addSpacerAlignments` function appends a list of putative on- and off-targets to a `GuideSet` object using one of three methods. The first method uses the fast aligner [bowtie](http://bowtie-bio.sourceforge.net/index.shtml) [@langmead2009bowtie] via the `crisprBowtie` package to map spacer sequences to a specified reference genome. This can be done by specifying `aligner="bowtie` and providing a path to a bowtie index file to `aligner_index` in `addSpacerAlignments`.
+The `addSpacerAlignments` function appends a list of putative on- and 
+off-targets to a `GuideSet` object using one of three methods. The first 
+method uses the fast aligner [bowtie](http://bowtie-bio.sourceforge.net/index.shtml) [@langmead2009bowtie] via the `crisprBowtie` package to map spacer sequences 
+to a specified reference genome. This can be done by specifying 
+`aligner="bowtie` and providing a path to a bowtie index file 
+to `aligner_index` in `addSpacerAlignments`.
 
 
 We can control the alignment parameters and output with several function arguments.
@@ -149,7 +224,8 @@ We can control the alignment parameters and output with several function argumen
 - `all_alignments`, when set to `TRUE`, overrules the `n_max_alignments` and returns all possible alignments.
 - `canonical` filters out protospacer sequences that do not have a canonical PAM sequence when `TRUE`.
 
-Let's search for on- and off-targets having up to 1 mismatch using bowtie. To use bowtie, we need to specify a bowtie index for the human genome: 
+Let's search for on- and off-targets having up to 2 mismatches using bowtie. 
+To use bowtie, we need to specify a bowtie index for the human genome: 
 
 ```{r}
 # Path of the hg38 bowtie index on my personal laptop:
@@ -157,44 +233,69 @@ bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
 
-For instructions on how to build a Bowtie index from a given reference genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) or the [crisprBowtie page](https://github.com/Jfortin1/crisprBowtie) .
+For instructions on how to build a Bowtie index from a given reference
+genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) or the [crisprBowtie page](https://github.com/crisprVerse/crisprBowtie) .
 
-We will also specify the gene model object `txdb_human` from `crisprDesignData` described above for `txObject` argument, which is needed for the function to annotate genomic alignments with genic context. This is useful for identifying potentially more problematic off-targets, such as those located in the CDS of another gene, for instance.
+We will also specify the gene model object `txdb_human` 
+from `crisprDesignData` described above for `txObject` argument, 
+which is needed for the function to annotate genomic alignments 
+with genic context. This is useful for identifying potentially
+more problematic off-targets, such as those located in the CDS 
+of another gene, for instance.
 
 ```{r, warning=FALSE, message=FALSE}
 guideSet <- addSpacerAlignments(guideSet,
                                 aligner="bowtie",
                                 aligner_index=bowtie_index,
                                 bsgenome=BSgenome.Hsapiens.UCSC.hg38,
-                                n_mismatches=1,
+                                n_mismatches=2,
                                 txObject=txdb_human)
 guideSet
 ```
 
-Several columns were added to the `GuideSet` object that summarize the number of on- and off-targets for each spacer sequence, and take genomic context into account:
+Several columns were added to the `GuideSet` object that summarize 
+the number of on- and off-targets for each spacer sequence, and 
+take genomic context into account:
 
 - **n0, n1, n2, n3**: specify the number of alignments with 0, 1, 2 and 3 mismatches, respectively.
 - **n0_c, n1_c, n2_c, n3_c**: specify the number of alignments in a coding region, with 0, 1, 2 and 3 mismatches, respectively.
 - **n0_p, n1_p, n2_p, n3_p**: specify the number of alignments in a promoter region of a coding gene, with 0, 1, 2 and 3 mismatches, respectively.
 
-Our `guideSet` now has columns of the first two categories, up to 1 mismatch (the value passed to `n_mismatches`); had we also supplied a `GRanges` of TSS coordinates to the `tssObject` argument, our `guideSet` would include columns in the last category.
+Our `guideSet` now has columns of the first two categories, up to 
+2 mismatches (the value passed to `n_mismatches`); had we also supplied 
+a `GRanges` of TSS coordinates to the `tssObject` argument, our `guideSet` 
+would include columns in the last category.
 
-To inspect individual on- and off-targets and their context, one can use the `alignments` function, which returns a table of all genomic alignments stored in the `GuideSet` object:
+To inspect individual on- and off-targets and their context, 
+one can use the `alignments` function, which returns a table 
+of all genomic alignments stored in the `GuideSet` object:
 
 ```{r}
 alignments(guideSet)
 ```
 
-Similarly, the functions `onTargets` and `offTargets` return on-target alignments (no mismatches) and off-target alignments (having at least one mismatch), respectively. See `?addSpacerAlignments` for more details about the different options.
+Similarly, the functions `onTargets` and `offTargets` return 
+on-target alignments (no mismatches) and off-target alignments 
+(having at least one mismatch), respectively. See `?addSpacerAlignments` 
+for more details about the different options.
 
 
 
 
-We note that gRNAs that align to hundreds of different locations are highly unspecific and undesirable. This can also cause `addSpacerAlignments` to be slow. The function `addSpacerAlignmentsIterative` is an iterative version of `addSpacerAlignments` that curtails alignment searches for gRNAs having more hits than the user-defined threshold. See `?addSpacerAlignmentsIterative` for more information.
+We note that gRNAs that align to hundreds of different locations are
+highly unspecific and undesirable. This can also cause
+`addSpacerAlignments` to be slow. The function
+`addSpacerAlignmentsIterative` is an iterative version of
+`addSpacerAlignments` that curtails alignment searches for 
+gRNAs having more hits than the user-defined threshold. 
+See `?addSpacerAlignmentsIterative` for more information.
 
 ## Removing repeat elements
 
-Many promiscuous protospacer sequences occur in repeats or low-complexity DNA sequences (regions identified by RepeatMasker). These sequences are usually not of interest due to their low specificity, and can be easily removed with `removeRepeats`:
+Many promiscuous protospacer sequences occur in repeats or 
+low-complexity DNA sequences (regions identified by RepeatMasker).
+These sequences are usually not of interest due to their low specificity,
+and can be easily removed with `removeRepeats`:
 
 ```{r, eval=TRUE}
 data("gr.repeats.hg38", package="crisprDesignData")
@@ -205,35 +306,56 @@ guideSet <- removeRepeats(guideSet,
 
 ## Off-target scoring (MIT and CFD specificity scores)
 
-After retrieving a list of putative off-targets and on-targets for a given spacer sequence, we can use `addOffTargetScores` to predict the likelihood of the nuclease to cut at the off-target locations based on mismatch tolerance
+After retrieving a list of putative off-targets and on-targets for a given 
+spacer sequence, we can use `addOffTargetScores` to predict the likelihood 
+of the nuclease to cut at the off-target locations based on mismatch tolerance
 
-```{r, eval=TRUE,warning=FALSE, message=FALSE, results='hide'}
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
 guideSet <- addOffTargetScores(guideSet)
 guideSet
 ```
 
-Note that this will only work after calling `addSpacerAlignments`, as it requires a list of off-targets for each gRNA entry. 
+Note that this will only work after calling `addSpacerAlignments`, 
+as it requires a list of off-targets for each gRNA entry. 
 
 ## On-target scoring (gRNA efficiency)
 
-`addOnTargetScores` adds scores from on-target efficiency algorithms specified by the `methods` argument (or all available methods if `NULL`) available in the R package [crisprScore](https://github.com/Jfortin1/crisprScore) and appends them to the `GuideSet`:
+`addOnTargetScores` adds scores from on-target efficiency algorithms 
+specified by the `methods` argument (or all available methods if `NULL`)
+available in the R package
+[crisprScore](https://github.com/crisprVerse/crisprScore) and appends
+them to the `GuideSet`. Here' let's add the DeepHF and DeepSpCas9 scores:
 
 ```{r, eval=TRUE, warning=FALSE, message=FALSE}
 guideSet <- addOnTargetScores(guideSet,
-                              methods=c("deephf"))
+                              methods=c("deephf", "deepspcas9"))
+guideSet
 ```
 
-See the [crisprScore page](https://github.com/Jfortin1/crisprScore) for a full description of the different scores. 
+See the [crisprScore page](https://github.com/crisprVerse/crisprScore) 
+for a full description of the different scores. 
 
 ## Restriction enzymes
 
-Since the gRNA library synthesis process usually involves restriction enzymes, it is often necessary to remove gRNAs that contain restriction sites of specific enzymes. The function `addRestrictionEnzymes` allows the user to flag gRNAs containing restriction sites for a user-defined set of enzymes.
+Since the gRNA library synthesis process usually involves restriction 
+enzymes, it is often necessary to remove gRNAs that contain restriction
+sites of specific enzymes. The function `addRestrictionEnzymes` allows 
+the user to flag gRNAs containing restriction sites for a user-defined 
+set of enzymes.
 
 ```{r, eval=TRUE,warning=FALSE, message=FALSE, results='hide'}
 guideSet <- addRestrictionEnzymes(guideSet)
 ```
 
-By default (that is, when `includeDefault` is `TRUE`), the function adds annotation for the following commonly used enzymes: EcoRI, KpnI, BsmBI, BsaI, BbsI, PacI, ISceI and MluI. Additional enzymes can be included by name via `enzymeNames`, and custom restriction sites can be defined using the `patterns` argument. It also accepts arguments to specify the nucleotide sequence that flanks the spacer sequence on the 5' end (`flanking5`) and on the 3' end (`flanking3`) in the lentiviral cassette used for gRNA delivery. The function effectively searches for restriction sites in the full sequence: `[flanking5][spacer][flanking3]`.
+By default (that is, when `includeDefault` is `TRUE`), the function 
+adds annotation for the following commonly used enzymes: EcoRI, KpnI, 
+BsmBI, BsaI, BbsI, PacI, ISceI and MluI. Additional enzymes can be 
+included by name via `enzymeNames`, and custom restriction sites can 
+be defined using the `patterns` argument. It also accepts arguments to
+specify the nucleotide sequence that flanks the spacer sequence on the 
+5' end (`flanking5`) and on the 3' end (`flanking3`) in the lentiviral
+cassette used for gRNA delivery. The function effectively searches for
+restriction sites in the full sequence: `[flanking5][spacer][flanking3]`.
 
 One can use the `enzymeAnnotation` function to retrieve the added annotation:
 
@@ -244,7 +366,8 @@ head(enzymeAnnotation(guideSet))
 
 ## Gene annotation
 
-The function `addGeneAnnotation` adds transcript- and gene-level context to gRNAs from a `TxDb`-like object:
+The function `addGeneAnnotation` adds transcript- and gene-level
+context to gRNAs from a `TxDb`-like object:
 
 ```{r, eval=TRUE,warning=FALSE, message=FALSE, results='hide'} 
 guideSet <- addGeneAnnotation(guideSet,
@@ -257,7 +380,8 @@ The gene annotation can be retrieved using the function `geneAnnotation`:
 geneAnnotation(guideSet)
 ```
 
-It provides a great deal of information in describing the genomic location of the protospacer sequences.
+It provides a great deal of information in describing the genomic 
+location of the protospacer sequences.
 
 - Ensembl ID columns are provided for all applicable levels: `gene_id`, `tx_id`, `protein_id`, `exon_id`.
 - `exon_rank` gives the order of the exon for the transcript; for example `"2"` indicates it is the second exon (from the 5' end) in the mature transcript. 
@@ -276,7 +400,8 @@ It provides a great deal of information in describing the genomic location of th
 
 ## TSS annotation
 
-Similarly, one might want to know which protospacer sequences are located within promoter regions of known genes:
+Similarly, one might want to know which protospacer sequences are 
+located within promoter regions of known genes:
 
 ```{r}
 data(tssObjectExample, package="crisprDesign")
@@ -285,14 +410,20 @@ guideSet <- addTssAnnotation(guideSet,
 tssAnnotation(guideSet)
 ```
 
-Not surprisingly, as our `GuideSet` targets the CDS of KRAS, none of our guides overlap a gene promoter region.
+Not surprisingly, as our `GuideSet` targets the CDS of KRAS, none of
+our guides overlap a gene promoter region.
 
 
 ## SNP annotation
 
-Common single-nucleotide polymorphisms (SNPs) can change the on-target and off-target properties of gRNAs by altering the binding. The function `addSNPAnnotation` annotates gRNAs with respect to a reference database of SNPs (stored in a VCF file), specified by the `vcf` argument. 
+Common single-nucleotide polymorphisms (SNPs) can change the on-target
+and off-target properties of gRNAs by altering the binding. The 
+function `addSNPAnnotation` annotates gRNAs with respect to a 
+reference database of SNPs (stored in a VCF file), specified by the `vcf` argument. 
 
-VCF files for common SNPs (dbSNPs) can be downloaded from NCBI on the [dbSNP website](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf/). We will use one of those files, after having downloaded it to our local machine.
+VCF files for common SNPs (dbSNPs) can be downloaded from NCBI 
+on the [dbSNP website](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf/).
+We will use one of those files, after having downloaded it to our local machine.
 
 ```{r, eval=TRUE,warning=FALSE, message=FALSE}
 vcf <- "/Users/fortinj2/crisprIndices/snps/dbsnp151.grch38/00-common_all_snps_only.vcf.gz"
@@ -300,57 +431,81 @@ guideSet <- addSNPAnnotation(guideSet, vcf=vcf)
 snps(guideSet)
 ```
 
-The `rs_site_rel` gives the relative position of the SNP with respect to the `pam_site`. `allele_ref` and `allele_minor` report the nucleotide of the reference and minor alleles, respectively. `MAF_1000G` and `MAF_TOPMED` report the minor allele frequency (MAF) in the 1000Genomes and TOPMED populations, respectively. 
+The `rs_site_rel` gives the relative position of the SNP with respect 
+to the `pam_site`. `allele_ref` and `allele_minor` report the 
+nucleotide of the reference and minor alleles, respectively.
+`MAF_1000G` and `MAF_TOPMED` report the minor allele frequency (MAF) 
+in the 1000Genomes and TOPMED populations, respectively. 
+
+
 
 
 ## Filtering and ranking gRNAs
 
-Once our gRNAs are fully annotated we can filter out unwantd gRNAs with the function `filterSpacers` then rank the best remaining gRNAs with `rankSpacers`. But first, let's check which criteria we can filter and rank on based on the existing annotation in `guideSet` with the `validCriteria` function.
+Once gRNAs are fully annotated, it is easy to filter out any unwanted gRNAs
+since `GuideSet` objects can be subsetted like regular vectors in R.
 
-```{r}
-validCriteria(guideSet)
+As an example, suppose that we only want to keep gRNAs that have percent
+GC between 20% and 80% and that do not contain a polyT stretch.
+This can be achieved using the following lines:
+
+```{r, eval=FALSE}
+guideSet <- guideSet[guideSet$percentGC>=20]
+guideSet <- guideSet[guideSet$percentGC<=80]
+guideSet <- guideSet[!guideSet$polyT]
 ```
 
-As an example, suppose that we only want to keep gRNAs that meet the following criteria:
+Similarly, it is easy to rank gRNAs based on a set of criteria 
+using the regular `order` function.
 
-- has percent GC between 20% and 80%
-- does not contain a polyT strech
-- does not have EcoRI or KpnI restriction sites
+For instance, let's sort gRNAs by the DeepHF on-target score:
 
-```{r}
-filter_criteria <- list(percentGC=c(20, 80),
-                        polyT=FALSE,
-                        EcoRI=FALSE,
-                        KpnI=FALSE)
-guideSet <- filterSpacers(guideSet,
-                          criteria=filter_criteria)
+```{r, eval=TRUE}
+# Creating an ordering index based on the DeepHF score:
+# Using the negative values to make sure higher scores are ranked first:
+o <- order(-guideSet$score_deephf) 
+# Ordering the GuideSet:
+guideSet <- guideSet[o]
+head(guideSet)
 ```
 
-The arguments for `rankSpacers` are the same, but with a subtle difference for `criteria`: the order of elements defines the priority for ranking. As an example, suppose we have the following ranking criteria, in order of importance:
+One can also sort gRNAs using several annotation columns.
+For instance, let's sort gRNAs using the DeepHF score, but also by 
+prioritizing first gRNAs that have no 1-mismatch off-targets in coding
+regions:
 
-- few off-targets with one mismatch; preferably no such off-targets
-- high on-target score (DeepHF)
-- targets an exon common to all KRAS isoforms
+```{r, eval=TRUE}
+o <- order(guideSet$n1_c, -guideSet$score_deephf) 
+# Ordering the GuideSet:
+guideSet <- guideSet[o]
+head(guideSet)
+```
 
-In setting up the list for `criteria`, we can see from `validCriteria(guideSet)` above that `n1` takes ascending values, `score_deephf` takes descending values, and `isCommonExon` requires a gene ID (Ensembl ID). For integer values, such as `n1`, we recommend using non-integer values so the division between ranks is unambiguous. Here's an example `criteria` we will use to rank our guides:
 
-```{r}
-rank_criteria <- list(n1=c(0.5, 1.5, 2.5, 5.5),
-                      score_deephf=c(0.8, 0.7, 0.6, 0.5, 0.4),
-                      isCommonExon=TRUE)
+The `rankSpacers` function is a convenience function that implements 
+our recommended rankings for the SpCas9, enAsCas12a and CasRx nucleases.
+For a detailed description of our recommended rankings, see the
+documentation of `rankSpacers` by typing
+`?rankSpacers`.
+
+If an Ensembl transcript ID is provided, the ranking function will also
+take into account the position of the gRNA within the target CDS of 
+the transcript ID in the ranking procedure. Our recommendation is to specify
+the Ensembl canonical transcript as the representative
+transcript for the gene. In our example, ENST00000311936 is the canonical
+transcript for KRAS:
+
+```{r, eval=TRUE}
+tx_id <- "ENST00000311936"
 guideSet <- rankSpacers(guideSet,
-                        criteria=rank_criteria,
-                        geneId="ENSG00000133703") # required for isCommonExon!
-guideSet
+                        tx_id=tx_id)
+head(guideSet)
 ```
 
-Our `guideSet` is now sorted according to our criteria, with the best guides first. For a more detailed look at the rankings, we can look at the appended column:
 
-```{r}
-guideSet$rankings
-```
 
-The data frame contains a column for the bin value of each criterium, along with an absolute score in the `rank` column, where a rank of `"1"` indicates a guide that meets the highest specified level (bin value of 1) for each of our criteria (in this example, that would translate to `n1<=0.5 && score_deephf>0.8 && isCommonExon==TRUE`).
+
+
 
 
 # Session Info

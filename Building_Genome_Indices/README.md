@@ -1,108 +1,127 @@
-Building genome indices for short read aligners
+Building genome indices off-target alignment
 ================
+Jean-Philippe Fortin, Luke Hoberecht
 
--   [Introduction](#introduction)
--   [Installation](#installation)
-    -   [OS Requirements](#os-requirements)
-    -   [R Dependencies](#r-dependencies)
--   [Building a genome index](#building-a-genome-index)
-    -   [Bowtie index](#bowtie-index)
-    -   [Bwa index](#bwa-index)
--   [Building a transcriptome index](#building-a-transcriptome-index)
--   [Reproducibility](#reproducibility)
--   [References](#references)
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: 29 July, 2022
+-   <a href="#introduction" id="toc-introduction">Introduction</a>
+-   <a href="#installation" id="toc-installation">Installation</a>
+-   <a href="#building-a-bowtie-index"
+    id="toc-building-a-bowtie-index">Building a bowtie index</a>
+-   <a href="#building-a-bwa-index" id="toc-building-a-bwa-index">Building a
+    BWA index</a>
+-   <a href="#building-a-transcriptome-index"
+    id="toc-building-a-transcriptome-index">Building a transcriptome
+    index</a>
+-   <a href="#reproducibility" id="toc-reproducibility">Reproducibility</a>
+-   <a href="#references" id="toc-references">References</a>
 
 # Introduction
 
-This vignette demonstrates how to build genome indices for use with the
-short read aligners bowtie (Langmead et al. 2009), as used by the
-`Rbowtie` and `crisprBowtie` packages, and BWA-backtrack (Li and Durbin
-2009), as used by the `Rbwa` and `crisprBwa` packages.
+This vignette demonstrates how to build genome indices for the purpose
+of performing on- and off-target alignment. In particular, we show how
+to build such indices for the short read aligners bowtie (Langmead et
+al. 2009), as used by the `Rbowtie` and `crisprBowtie` packages, and
+BWA-backtrack (Li and Durbin 2009), as used by the `Rbwa` and
+`crisprBwa` packages. Note that BWA is not available for Windows users.
+
+Generating a genome index file is time consuming, but only needs to be
+done once for a given genome.
 
 # Installation
 
-### OS Requirements
+See the [Installation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
+to learn how to install the `crisprBowtie` and `crisprBwa` packages.
 
-The `crisprBowtie` package is supported for macOS, Linux and Windows
-machines. The `crisprBwa` package is supported for macOS and Linux only.
-Both packages were developed and tested on R version 4.2.
+# Building a bowtie index
 
-### R Dependencies
+In the following example, we build a bowtie index for the human genome
+using the hg38 build. First, users will need to donwload the FASTA file
+from the UCSC genome browser. Here’s the link:
+<https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz>
 
--   RBowtie:
-    <https://bioconductor.org/packages/release/bioc/html/Rbowtie.html>
--   RBwa: <https://github.com/Jfortin1/Rbwa>
-
-# Building a genome index
-
-A genome index file is necessary to use the aligner functions in the
-`crisprBowtie` package (`runBowtie` and `runCrisprBowtie`) and the
-`crisprBwa` package (`runBwa` and `runCrisprBwa`). For a given genome,
-this step only needs to be done once.
-
-## Bowtie index
-
-The `Rbowtie` package offers the convenient function `bowtie_build`,
-which builds a bowtie index for any custom genome from a FASTA file. In
-the following example, we build a bowtie index for a small region of the
-human chromosome 1 (provided in the `crisprBowtie` package) and save the
-index file to a temporary directory:
+Next, assuming the `hg38.fa.gz` is located in the current directory, we
+build the bowtie genome index using the function `bowtie_build` from the
+`Rbowtie` package (which is installed when `crisprBowtie` is installed):
 
 ``` r
 library(Rbowtie)
-fasta <- file.path(find.package("crisprBowtie"), "example/chr1.fa")
-tempDir <- tempdir()
-Rbowtie::bowtie_build(fasta,
-                      outdir=tempDir,
-                      force=TRUE,
-                      prefix="myIndex")
+fastaFile <- "./hg38.fa.gz"
+bowtie_build(fastaFile,
+             outdir="./",
+             force=TRUE,
+             prefix="hg38")
 ```
 
-See the [crisprBowtie](https://github.com/Jfortin1/crisprBowtie) package
-for information on how to obtain alignments using this index file.
+This should take a couple of hours to run, and the resulting bowtie
+index files will be located in the folder `./hg38` and can be used to
+run bowtie alignment. See the
+[crisprBowtie](https://github.com/crisprVerse/crisprBowtie) package to
+learn how to perform a bowtie alignment within R.
 
-## Bwa index
+# Building a BWA index
 
-Building a BWA index is made simple with the `bwa_build_index` function
-from the `Rbwa` package. This function builds the index file for any
-custom genome from a FASTA file. As an example, we build a BWA index for
-a small portion of the human chromosome 12 (provided in the `crisprBwa`
-package) and save the index file to a temporary directory:
+Building a BWA index is similar to building a bowtie index. Assuming the
+`hg38.fa.gz` is located in the current directory, we build the BWA
+genome index using the function `bwa_build_index` from the `Rbwa`
+package (which is installed when `crisprBwa` is installed):
 
 ``` r
 library(Rbwa)
-fasta <- system.file(package="crisprBwa", "example/chr12.fa")
-outdir <- tempdir()
-index <- file.path(outdir, "chr12")
-Rbwa::bwa_build_index(fasta,
-                      index_prefix=index)
+fastaFile <- "./hg38.fa.gz"
+bwa_build_index(fastaFile,
+                index_prefix="hg38")
 ```
 
-See the [crisprBwa](https://github.com/Jfortin1/crisprBwa) package for
-information on how to obtain alignments using this index file.
+This should take a couple of hours to run, and the resulting BWA index
+files will be located in the folder `./hg38` and can be used to run BWA
+alignment. See the [crisprBwa](https://github.com/crisprVerse/crisprBwa)
+package to learn how to perform a BWA alignment within R.
 
 # Building a transcriptome index
 
-For applications using RNA-targeting nucleases such as CasRx, it is
-preferable to search for alignments against the transcriptome rather
-than the entire genome. To build an index file for the transcriptome we
-must first generate a FASTA file containing the transcriptome. This is
-easily accomplished with the `crisprDesign` function `getMrnaSequences`,
-as shown in the following example:
+For applications using RNA-targeting nucleases such as CasRx, off-target
+search is performed against against transcriptomes rather than genomes.
+Building a transcriptome index works similar, except that we first need
+to generate a FASTA file containing the transcriptome sequences. This is
+easily accomplished with the function `getMrnaSequences` from the
+`crisprDesign` package, assuming that a gene model is provided, as well
+as a `BSgenome` object containing the DNA sequences for the hg38 genome
+(`BSgenome.Hsapiens.UCSC.hg38`).
+
+We first load the necessary packages
 
 ``` r
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(crisprDesign)
+```
+
+The `crisprDesignData` package (see Installation) contains a gene model
+annotation for the hg38 genome, and can be loaded using the following:
+
+``` r
 library(crisprDesignData)
 data("txdb_human", package="crisprDesignData")
-exon_ids <- unique(txdb_human$exons$tx_id)
-mrnasHuman <- getMrnaSequences(exon_ids,
+```
+
+See the [Gene annotation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation)
+to learn more about how to build such gene annotation objects.
+
+We will now extract mRNA sequences for all available transcripts:
+
+``` r
+txids <- unique(txdb_human$exons$tx_id)
+mrnasHuman <- getMrnaSequences(txids,
                                bsgenome=BSgenome.Hsapiens.UCSC.hg38,
                                txObject=txdb_human)
+```
+
+This should take less than an hour to run. Once completed, we will write
+the extracted mRNA sequences to disk using the FASTA format. This can be
+accomplished using the `writeXStringSet` function from the `Biostrings`
+package:
+
+``` r
 library(Biostrings)
 writeXStringSet(mrnasHuman,
                 file="ensembl_human_104.fasta",
@@ -120,7 +139,7 @@ as described in the above sections.
 sessionInfo()
 ```
 
-    ## R Under development (unstable) (2022-03-21 r81954)
+    ## R version 4.2.1 (2022-06-23)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Catalina 10.15.7
     ## 
@@ -134,14 +153,11 @@ sessionInfo()
     ## attached base packages:
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
-    ## other attached packages:
-    ## [1] Rbwa_1.0.0     Rbowtie_1.36.0
-    ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] digest_0.6.29   magrittr_2.0.3  evaluate_0.15   rlang_1.0.3    
-    ##  [5] stringi_1.7.6   cli_3.3.0       rstudioapi_0.13 rmarkdown_2.14 
-    ##  [9] tools_4.2.0     stringr_1.4.0   xfun_0.31       yaml_2.3.5     
-    ## [13] fastmap_1.1.0   compiler_4.2.0  htmltools_0.5.2 knitr_1.39
+    ##  [1] compiler_4.2.1   magrittr_2.0.3   fastmap_1.1.0    cli_3.3.0       
+    ##  [5] tools_4.2.1      htmltools_0.5.3  rstudioapi_0.14  yaml_2.3.5      
+    ##  [9] stringi_1.7.8    rmarkdown_2.15.2 knitr_1.40       stringr_1.4.1   
+    ## [13] xfun_0.32        digest_0.6.29    rlang_1.0.4      evaluate_0.16
 
 # References
 

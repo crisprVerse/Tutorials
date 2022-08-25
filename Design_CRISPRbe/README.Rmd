@@ -1,5 +1,6 @@
 ---
 title: "Using crisprDesign to design gRNAs for CRISPRbe"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,38 +11,18 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
-
 
 # Introduction
 
+In this tutorial, We illustrate the CRISPR base editing (CRISPRbe) functionalities 
+of `crisprDesign` by designing and characterizing gRNAs targeting the 
+human gene KRAS using the cytidine base editor BE4max [@koblan2018improving]. 
 
 
 # Installation
 
-This tutorial used several packages from Bioconductor that can be
-installed using the following commands:
-
-
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-and the following package from GitHub:
-
-```{r, eval=FALSE}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
-
-
-
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 
 # Terminology
@@ -65,10 +46,6 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 
 
 ## Creating the GuideSet
-
-We illustrate the CRISPR base editing (CRISPRbe) functionalities 
-of `crisprDesign` by designing and characterizing gRNAs targeting the 
-human gene KRAS using the cytidine base editor BE4max [@koblan2018improving]. 
 
 We first load the BE4max `BaseEditor` object from the `crisprBase` package:
 
@@ -101,14 +78,26 @@ For more information on `txdb_human` and how to create
 similar gene annotation objects, see the [Building a gene annotation object tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation).
 
 
+We will also load the `BSgenome` package containing DNA sequences for the hg38
+genome:
 
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library(BSgenome.Hsapiens.UCSC.hg38)
+```
+
+
+We retrive the genomic coordinates of the KRAS CDS
 ```{r}
-bsgenome <- BSgenome.Hsapiens.UCSC.hg38
-
 gr <- queryTxObject(txObject=txdb_human,
                     featureType="cds",
                     queryColumn="gene_symbol",
                     queryValue="KRAS")
+```
+
+and design all possigle gRNAs using the function `findSpacers`:
+
+```{r}
+bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 gs <- findSpacers(gr,
                   bsgenome=bsgenome,
                   crisprNuclease=BE4max)

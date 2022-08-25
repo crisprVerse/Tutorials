@@ -1,88 +1,82 @@
 Building custom CRISPR nuclease objects
 ================
+Jean-Philippe Fortin, Luke Hoberecht
 
--   [Introduction](#introduction)
--   [Installation](#installation)
-    -   [Software requirements](#software-requirements)
-        -   [OS Requirements](#os-requirements)
-    -   [Installation](#installation-1)
-        -   [Getting started](#getting-started)
--   [Nuclease class](#nuclease-class)
-    -   [Examples](#examples)
-    -   [Accessor functions](#accessor-functions)
--   [CrisprNuclease class](#crisprnuclease-class)
-    -   [Examples](#examples-1)
-    -   [CrisprNuclease objects provided in
-        CrisprBase](#crisprnuclease-objects-provided-in-crisprbase)
--   [CRISPR arithmetics](#crispr-arithmetics)
-    -   [CRISPR terminology](#crispr-terminology)
-    -   [Cut site](#cut-site)
-    -   [Obtaining spacer and PAM sequences from target
-        sequences](#obtaining-spacer-and-pam-sequences-from-target-sequences)
-    -   [Obtaining genomic coordinates of protospacer sequences using
-        PAM site
-        coordinates](#obtaining-genomic-coordinates-of-protospacer-sequences-using-pam-site-coordinates)
--   [BaseEditor class](#baseeditor-class)
--   [CrisprNickase class](#crisprnickase-class)
--   [RNA-targeting nucleases](#rna-targeting-nucleases)
--   [Additional notes](#additional-notes)
-    -   [dCas9 and other “dead”
-        nucleases](#dcas9-and-other-dead-nucleases)
--   [Reproducibility](#reproducibility)
--   [References](#references)
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: 29 July, 2022
+-   <a href="#introduction" id="toc-introduction">Introduction</a>
+-   <a href="#installation" id="toc-installation">Installation</a>
+    -   <a href="#getting-started" id="toc-getting-started">Getting started</a>
+-   <a href="#nuclease-class" id="toc-nuclease-class">Nuclease class</a>
+    -   <a href="#examples" id="toc-examples">Examples</a>
+    -   <a href="#accessor-functions" id="toc-accessor-functions">Accessor
+        functions</a>
+-   <a href="#crisprnuclease-class"
+    id="toc-crisprnuclease-class">CrisprNuclease class</a>
+    -   <a href="#examples-1" id="toc-examples-1">Examples</a>
+    -   <a href="#crisprnuclease-objects-provided-in-crisprbase"
+        id="toc-crisprnuclease-objects-provided-in-crisprbase">CrisprNuclease
+        objects provided in CrisprBase</a>
+-   <a href="#crispr-arithmetics" id="toc-crispr-arithmetics">CRISPR
+    arithmetics</a>
+    -   <a href="#crispr-terminology" id="toc-crispr-terminology">CRISPR
+        terminology</a>
+    -   <a href="#cut-site" id="toc-cut-site">Cut site</a>
+    -   <a href="#obtaining-spacer-and-pam-sequences-from-target-sequences"
+        id="toc-obtaining-spacer-and-pam-sequences-from-target-sequences">Obtaining
+        spacer and PAM sequences from target sequences</a>
+    -   <a
+        href="#obtaining-genomic-coordinates-of-protospacer-sequences-using-pam-site-coordinates"
+        id="toc-obtaining-genomic-coordinates-of-protospacer-sequences-using-pam-site-coordinates">Obtaining
+        genomic coordinates of protospacer sequences using PAM site
+        coordinates</a>
+-   <a href="#baseeditor-class" id="toc-baseeditor-class">BaseEditor
+    class</a>
+-   <a href="#crisprnickase-class"
+    id="toc-crisprnickase-class">CrisprNickase class</a>
+-   <a href="#rna-targeting-nucleases"
+    id="toc-rna-targeting-nucleases">RNA-targeting nucleases</a>
+-   <a href="#additional-notes" id="toc-additional-notes">Additional
+    notes</a>
+    -   <a href="#dcas9-and-other-dead-nucleases"
+        id="toc-dcas9-and-other-dead-nucleases">dCas9 and other “dead”
+        nucleases</a>
+-   <a href="#reproducibility" id="toc-reproducibility">Reproducibility</a>
+-   <a href="#references" id="toc-references">References</a>
 
 # Introduction
 
-The `crisprBase` package provides S4 classes to represent nucleases, and
-more specifically nucleases for CRISPR applications. It also provides
-arithmetic functions to extract genomic ranges to help with the design
-and manipulation of CRISPR guide-RNAs (gRNAs). The classes and functions
-are designed to work with a broad spectrum of nucleases and
-applications, including PAM-free CRISPR nucleases, RNA-targeting
-nucleases, and the more general class of restriction enzymes. It also
-includes functionalities for CRISPR nickases.
+The `crisprBase` package provides functionalities to represent and
+specify custom CRISPR nucleases to be used in the crisprVerse ecosystem,
+as well as other enzymes such as base editors and nickases.
+Commonly-used CRISPR nucleases, such as SpCas9, AsCas12a, enAsCas12a,
+and CasRx are readily available in the package, and users do not need to
+reconstruct those nucleases.
 
-It provides a language and convention for our gRNA design ecosystem
-described in our recent bioRxiv preprint: [“A comprehensive Bioconductor
-ecosystem for the design of CRISPR guide RNAs across nucleases and
-technologies”](https://www.biorxiv.org/content/10.1101/2022.04.21.488824v2)
+The package also provides arithmetic functions to extract genomic ranges
+to help with the design and manipulation of CRISPR guide RNAs (gRNAs).
+The classes and functions are designed to work with a broad spectrum of
+nucleases and applications, including PAM-free CRISPR nucleases,
+RNA-targeting nucleases, and the more general class of restriction
+enzymes. It also includes functionalities for CRISPR nickases.
 
-In this tutorial we show how to construct objects of the following S4
-classes: `Nuclease`, `CrisprNuclease`, `BaseEditor`, `CrisprNickase`. We
+In this tutorial we show how to construct objects for the following
+enzymes: `Nuclease`, `CrisprNuclease`, `BaseEditor`, `CrisprNickase`. We
 also discuss some important details of these objects, how to easily
 retrieve key information with accessor functions, and how to use
 arithmetic functions on these objects in facilitating gRNA design.
 
 # Installation
 
-## Software requirements
-
-### OS Requirements
-
-This package is supported for macOS, Linux and Windows machines. It was
-developed and tested on R version 4.2.
-
-## Installation
-
-`crisprBase` can be installed by entering the following commands in an R
-session:
-
-``` r
-install.packages("devtools")
-library(devtools)
-install_github("Jfortin1/crisprBase")
-```
+`crisprBase` is part of the
+[crisprVerse](https://github.com/crisprVerse), and can be installed by
+installing the `crisprVerse` package; see the [Installation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation).
 
 ### Getting started
 
-`crisprBase` can be loaded in the usual way:
+`crisprBase` can be loaded by loading the `crisprVerse` package:
 
 ``` r
-library(crisprBase)
+library(crisprVerse)
 ```
 
 # Nuclease class
@@ -331,7 +325,12 @@ AsCas12a
 
 Several already-constructed `crisprNuclease` objects for some of the
 most popular CRISPR nucleases are available in `crisprBase` for your
-convenience. See `data(package="crisprBase")`.
+convenience. The list of available nucleases can be accessed by typing
+the following:
+
+``` r
+data(package="crisprBase")
+```
 
 # CRISPR arithmetics
 
@@ -749,7 +748,7 @@ nuclease throughout `crisprBase`.
 sessionInfo()
 ```
 
-    ## R Under development (unstable) (2022-03-21 r81954)
+    ## R version 4.2.1 (2022-06-23)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Catalina 10.15.7
     ## 
@@ -764,29 +763,64 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] crisprBase_1.1.2 devtools_2.4.4   usethis_2.1.6   
+    ##  [1] crisprDesign_0.99.133 crisprScore_1.1.14    crisprScoreData_1.1.3
+    ##  [4] ExperimentHub_2.5.0   AnnotationHub_3.5.0   BiocFileCache_2.5.0  
+    ##  [7] dbplyr_2.2.1          BiocGenerics_0.43.1   crisprBowtie_1.1.1   
+    ## [10] crisprBase_1.1.5      crisprVerse_0.99.8   
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] xfun_0.31              remotes_2.4.2          purrr_0.3.4           
-    ##  [4] miniUI_0.1.1.1         htmltools_0.5.2        stats4_4.2.0          
-    ##  [7] yaml_2.3.5             rlang_1.0.4            pkgbuild_1.3.1        
-    ## [10] later_1.3.0            urlchecker_1.0.1       glue_1.6.2            
-    ## [13] BiocGenerics_0.42.0    sessioninfo_1.2.2      GenomeInfoDbData_1.2.8
-    ## [16] lifecycle_1.0.1        stringr_1.4.0          zlibbioc_1.42.0       
-    ## [19] Biostrings_2.64.0      htmlwidgets_1.5.4      memoise_2.0.1         
-    ## [22] evaluate_0.15          knitr_1.39             callr_3.7.0           
-    ## [25] IRanges_2.30.0         fastmap_1.1.0          httpuv_1.6.5          
-    ## [28] ps_1.7.1               GenomeInfoDb_1.32.2    curl_4.3.2            
-    ## [31] highr_0.9              Rcpp_1.0.8.3           xtable_1.8-4          
-    ## [34] promises_1.2.0.1       cachem_1.0.6           S4Vectors_0.34.0      
-    ## [37] pkgload_1.3.0          XVector_0.36.0         mime_0.12             
-    ## [40] fs_1.5.2               digest_0.6.29          stringi_1.7.8         
-    ## [43] processx_3.6.1         shiny_1.7.1            GenomicRanges_1.48.0  
-    ## [46] cli_3.3.0              tools_4.2.0            bitops_1.0-7          
-    ## [49] magrittr_2.0.3         RCurl_1.98-1.7         profvis_0.3.7         
-    ## [52] crayon_1.5.1           ellipsis_0.3.2         prettyunits_1.1.1     
-    ## [55] rmarkdown_2.14         rstudioapi_0.13        R6_2.5.1              
-    ## [58] compiler_4.2.0
+    ##   [1] bitops_1.0-7                  matrixStats_0.62.0           
+    ##   [3] bit64_4.0.5                   filelock_1.0.2               
+    ##   [5] progress_1.2.2                httr_1.4.4                   
+    ##   [7] GenomeInfoDb_1.33.5           tools_4.2.1                  
+    ##   [9] utf8_1.2.2                    R6_2.5.1                     
+    ##  [11] DBI_1.1.3                     tidyselect_1.1.2             
+    ##  [13] prettyunits_1.1.1             bit_4.0.4                    
+    ##  [15] curl_4.3.2                    compiler_4.2.1               
+    ##  [17] cli_3.3.0                     Biobase_2.57.1               
+    ##  [19] basilisk.utils_1.9.1          xml2_1.3.3                   
+    ##  [21] DelayedArray_0.23.1           rtracklayer_1.57.0           
+    ##  [23] randomForest_4.7-1.1          readr_2.1.2                  
+    ##  [25] rappdirs_0.3.3                stringr_1.4.1                
+    ##  [27] digest_0.6.29                 Rsamtools_2.13.4             
+    ##  [29] rmarkdown_2.15.2              basilisk_1.9.2               
+    ##  [31] XVector_0.37.0                pkgconfig_2.0.3              
+    ##  [33] htmltools_0.5.3               MatrixGenerics_1.9.1         
+    ##  [35] highr_0.9                     fastmap_1.1.0                
+    ##  [37] BSgenome_1.65.2               rlang_1.0.4                  
+    ##  [39] rstudioapi_0.14               RSQLite_2.2.16               
+    ##  [41] shiny_1.7.2                   BiocIO_1.7.1                 
+    ##  [43] generics_0.1.3                jsonlite_1.8.0               
+    ##  [45] BiocParallel_1.31.12          dplyr_1.0.9                  
+    ##  [47] VariantAnnotation_1.43.3      RCurl_1.98-1.8               
+    ##  [49] magrittr_2.0.3                GenomeInfoDbData_1.2.8       
+    ##  [51] Matrix_1.4-1                  Rcpp_1.0.9                   
+    ##  [53] S4Vectors_0.35.1              fansi_1.0.3                  
+    ##  [55] reticulate_1.25               Rbowtie_1.37.0               
+    ##  [57] lifecycle_1.0.1               stringi_1.7.8                
+    ##  [59] yaml_2.3.5                    SummarizedExperiment_1.27.1  
+    ##  [61] zlibbioc_1.43.0               grid_4.2.1                   
+    ##  [63] blob_1.2.3                    promises_1.2.0.1             
+    ##  [65] parallel_4.2.1                crayon_1.5.1                 
+    ##  [67] dir.expiry_1.5.0              lattice_0.20-45              
+    ##  [69] Biostrings_2.65.2             GenomicFeatures_1.49.6       
+    ##  [71] hms_1.1.2                     KEGGREST_1.37.3              
+    ##  [73] knitr_1.40                    pillar_1.8.1                 
+    ##  [75] GenomicRanges_1.49.1          rjson_0.2.21                 
+    ##  [77] codetools_0.2-18              biomaRt_2.53.2               
+    ##  [79] stats4_4.2.1                  BiocVersion_3.16.0           
+    ##  [81] XML_3.99-0.10                 glue_1.6.2                   
+    ##  [83] evaluate_0.16                 BiocManager_1.30.18          
+    ##  [85] httpuv_1.6.5                  png_0.1-7                    
+    ##  [87] vctrs_0.4.1                   tzdb_0.3.0                   
+    ##  [89] purrr_0.3.4                   assertthat_0.2.1             
+    ##  [91] cachem_1.0.6                  xfun_0.32                    
+    ##  [93] mime_0.12                     xtable_1.8-4                 
+    ##  [95] restfulr_0.0.15               later_1.3.0                  
+    ##  [97] tibble_3.1.8                  GenomicAlignments_1.33.1     
+    ##  [99] AnnotationDbi_1.59.1          memoise_2.0.1                
+    ## [101] IRanges_2.31.2                interactiveDisplayBase_1.35.0
+    ## [103] ellipsis_0.3.2
 
 # References
 

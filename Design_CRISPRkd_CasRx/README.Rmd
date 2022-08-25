@@ -1,5 +1,6 @@
 ---
 title: "Using crisprDesign to design gRNAs for CRISPRkd with CasRx"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,58 +11,16 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
-
-
 # Introduction
 
-`crisprDesign` is a comprehensive software package for designing and annotating CRISPR guide RNA (gRNA) sequences, including the characterization of on-targets and off-targets, gene context annotation, and SNP annotation (human only). The software was developed to be as applicable and generalizable as possible. It currently support four types of CRISPR modalities (modes of perturbations): CRISPR knockout (CRISPRko), CRISPR activation (CRISPRa), CRISPR inhibition (CRISPRi) and CRISPR base editing (CRISPRbe) (see @crispracrisprireview for a review of CRISPR modalities).
-
-This package utilizes the `crisprBase` package to enable gRNA design for any CRISPR nuclease via the `CrisprNuclease` class. Nucleases that are commonly used in the field are provided, including DNA-targeting nucleases (e.g. SpCas9, AsCas12a) and RNA-targeting nuclease (e.g. CasRx (RfxCas13d)).
-
-`crisprDesign` is fully developed to work with the genome of any organism, and can also be used to design gRNAs targeting custom DNA sequences.
-
+In this tutorial, we will design gRNAs for the RNA-targeting nuclease 
+CasRx (RfxCas13d) [@cas13d]. We will design all gRNAs targeting the primary 
+isoform of the human gene KRAS. 
 
 # Installation
 
-
-The Bioconductor packages needed in this vignette can be downloaded using
-the following commands:
-
-
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-The GitHub packages needed in this vignette can be downloaded using
-the following commands:
-
-```{r, eval=FALSE}
-if (!requireNamespace("devtools", quietly = TRUE))
-    install.packages("devtools")
-
-devtools::install_github("Jfortin1/crisprDesignData")
-```
-
-
-Users interested in contributing to `crisprDesign` might want to look at the following CRISPR-related package dependencies:
-
-- `crisprBase`: core CRISPR functions and S4 objects
-- `crisprBowtie`: aligns gRNA spacers to genomes using the ungapped 
-aligner `bowtie`
-- `crisprBwa`: aligns gRNA spacers to genomes using the ungapped 
-aligner `BWA`
-- `crisprScore`: implements state-of-the-art on- and off-target scoring 
-algorithms
-- `crisprScoreData`: pre-trained models necessary for `crisprScore`
-
-You can contribute to the package by submitting pull requests to our [GitHub repo](https://github.com/Jfortin1/crisprDesign). 
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 
 # Terminology
@@ -70,42 +29,57 @@ See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree
 this tutorial.
 
 
-# CRISPR knockdown with Cas13d
+# End-to-end gRNA design workflow
 
-## Loading packages
+We first start by loading the crisprVerse packages needed for 
+this tutorial:
 
-The following examples use the `crisprBase`, `crisprDesign`, `crisprDesignData`, and `BSgenome.Hsapiens.UCSC.hg38` packages. Before we begin, let's load the 
-necessary packages:
-
-```{r, warning=FALSE, message=FALSE, results='hide'}
+```{r, message=FALSE, warning=FALSE, results='hide'}
 library(crisprBase)
 library(crisprDesign)
 library(crisprDesignData)
+```
+
+We will also load the `BSgenome` package containing DNA sequences for the hg38
+genome:
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
 library(BSgenome.Hsapiens.UCSC.hg38)
 ```
 
 
 ## Creating the GuideSet
 
-In this example, we will design gRNAs for an RNA-targeting nuclease using `crisprDesign`, specifically, we will use the CasRx (Cas13d) nuclease [@cas13d] to target the primary isoform of the human KRAS gene. In contrast to DNA-targeting nucleases, the target spacers are composed of mRNA sequences rather than DNA genomic sequences. [disclosure...]
-
-We begin by loading the CasRx `CrisprNuclease` object from `crisprBase`:
+We begin by loading the CasRx `CrisprNuclease` object from the `crisprBase`
+package:
 
 ```{r}
 data(CasRx, package="crisprBase")
 CasRx
 ```
 
-The PFS sequence (the equivalent of a PAM sequence for RNA-targeting nucleases) for CasRx is `N`, meaning there is no specific PFS sequences preferred by CasRx. 
+The PFS sequence (the equivalent of a PAM sequence for RNA-targeting nucleases)
+for CasRx is `N`, meaning there is no specific PFS sequences preferred by CasRx. 
 
-Next, we extract the mRNA sequence for our target transcript (Ensembl transcript ID: ENST00000311936). For this we need the coordinates for our transcript, which are conveniently stored in the `crisprDesignData` package as `txdb_human` (for more information on `txdb_human` and how to create similar gene annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial), as well as a `BSgenome` object containing the exonic sequences.
+Next, we will extract the mRNA sequence for the KRAS transcript ENST00000311936 
+with the function `getMrnaSequences` from `crisprDesign`. The function
+requires a gene annotation object. We will load the Ensembl model from
+the `crisprDesignData` package stored in the `GRangesList` object `txdb_human`:
 
 ```{r}
 data("txdb_human", package="crisprDesignData")
+```
+
+For more information on `txdb_human` and how to create similar gene 
+annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial).
+
+We also need a `BSgenome` object containing the DNA sequences:
+
+```{r}
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 ```
 
-We obtain our mRNA sequence with `getMrnaSequences`:
+We are now ready to obtain our mRNA sequence:
 
 ```{r}
 txid <- "ENST00000311936"
@@ -115,15 +89,21 @@ mrna <- getMrnaSequences(txids=txid,
 mrna
 ```
 
-We then use the function `findSpacers` to design our gRNAs.
+Similar to the CRISPRko gRNA design, we use the function `findSpacers` 
+to design our gRNAs:
 
-```{r}
-gs <- findSpacers(mrna[["ENST00000311936"]],
+```{r, warning=FALSE}
+gs <- findSpacers(mrna,
                   crisprNuclease=CasRx)
 head(gs)
 ```
 
-Note that all protospacer sequences are located on the original strand of the mRNA sequence. For RNA-targeting nucleases, the spacer and protospacer sequences are the reverse complement of each other. (Compare the output of the code below with a `GuideSet` that uses a DNA-targeting nuclease--for such `GuideSet`s, the output of `spacers` and `protospacers` are identical.)
+Note that all protospacer sequences are located on the original strand of 
+the mRNA sequence. For RNA-targeting nucleases, the spacer and protospacer 
+sequences are the reverse complement of each other. 
+(Compare the output of the code below with a `GuideSet` that 
+uses a DNA-targeting nuclease--for such `GuideSet` pbjects, the output 
+of `spacers` and `protospacers` are identical.)
 
 ```{r}
 head(spacers(gs))
@@ -142,11 +122,19 @@ or deserve extra care for CRISPRkd applications.
 
 ### Adding spacer alignments
 
-Since our CRISPR nuclease targets RNA rather than DNA, off-target searches should be restricted to the transcriptome. We can perform such a search using one of two methods.
+Since our CRISPR nuclease targets RNA rather than DNA, off-target 
+searches should be restricted to the transcriptome. We can perform
+such a search using one of two methods.
 
 #### Adding spacer alignments with Biostrings
 
-For the first method, we set the `aligner` argument to `"biostrings"` and pass a `DNAStringSet` representation of the transcriptome to the argument `custom_seq`. We can create this representation with `getMrnaSequences` and all transcript IDs found in `txdb_human`. The code below uses this method to search for off-targets having up to one mismatch and passes `txdb_human` to the `txObject` argument so that the alignments will be accompanied with gene annotation.
+For the first method, we set the `aligner` argument to `"biostrings"` 
+and pass a `DNAStringSet` representation of the transcriptome to the 
+argument `custom_seq`. We can create this representation with
+`getMrnaSequences` and all transcript IDs found in `txdb_human`. 
+The code below uses this method to search for off-targets having up to
+one mismatch and passes `txdb_human` to the `txObject` argument so 
+that the alignments will be accompanied with gene annotation.
 
 ```{r, eval=FALSE}
 exon_ids <- unique(txdb_human$exons$tx_id)
@@ -161,17 +149,22 @@ results <- addSpacerAlignments(gs,
                                custom_seq=mrnasHuman)
 ```
 
-NOTE: since `mrnasHuman` contains many sequences (>100k), this method has a very long run time; for transcriptome-wide searches, or for searches against a large number of sequences, we recommend the following method instead.
+NOTE: since `mrnasHuman` contains many sequences (>100k), this method 
+has a very long run time; for transcriptome-wide searches, 
+or for searches against a large number of sequences, we recommend the 
+following method instead.
 
 
 #### Adding spacer alignments with bowtie or BWA
 
-The second method uses the `bowtie` (or `bwa`) aligner. This requires building a transcriptome bowtie (or BWA) index file first. See the [Building genome indices for short read aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) tutorial for more information. 
+The second method uses the `bowtie` (or `bwa`) aligner. This requires 
+building a transcriptome bowtie (or BWA) index file first. See the [Building genome indices for short read aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) tutorial for more information. 
 
-Here we set `aligner` to `"bowtie"` and pass a precomputed transcriptome bowtie index to `aligner_index` to find off-targets:
+Here we set `aligner` to `"bowtie"` and pass a precomputed 
+transcriptome bowtie index to `aligner_index` to find off-targets:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
-bowtie_index <- "/Users/hoberecl/crisprIndices/bowtie/ensembl_human_104/ensembl_human_104"
+bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/ensembl_human_104/ensembl_human_104"
 results <- addSpacerAlignments(gs,
                                aligner="bowtie",
                                aligner_index=bowtie_index,
@@ -182,24 +175,46 @@ results <- addSpacerAlignments(gs,
 head(results)
 ```
 
-The columns `n0_gene` and `n0_tx` report the number of on-targets at the gene- and transcript-level, respectively. For instance, each spacer shown above shows `n0_gene` equal to 1 and `n0_tx` equal to 4, meaning each spacer maps to all four isoforms of KRAS. We can retrieve information about each alignment with the `onTargets` function. Looking at the on-targets for the first spacer we can see where the target `pam_site` is relative to the start of the transcript with respect to each isoform of KRAS.
+The columns `n0_gene` and `n0_tx` report the number of on-targets
+at the gene- and transcript-level, respectively. For instance, 
+each spacer shown above shows `n0_gene` equal to 1 and `n0_tx` 
+equal to 4, meaning each spacer maps to all four isoforms of KRAS.
+We can retrieve information about each alignment with the `onTargets`
+function. Looking at the on-targets for the first spacer we can see 
+where the target `pam_site` is relative to the start of the transcript
+with respect to each isoform of KRAS.
 
 ```{r}
 onTargets(results["spacer_1"])
 ```
 
-Note that each annotated alignment is specific to the transcript ID given under `seqnames`.
+Note that each annotated alignment is specific to the transcript 
+ID given under `seqnames`.
 
-Below is a spacer that targets (with no mismatches) multiple genes.
+Below is a spacer that targets (with no mismatches) multiple genes:
 
 ```{r}
 results["spacer_244"]
 ```
 
-Upon further inspection of this spacer's alignments, however, we can see that the off-target occurs in the pseudogene KRASP1, and should be harmless.
+Upon further inspection of this spacer's alignments, 
+however, we can see that the off-target occurs in the pseudogene KRASP1,
+and should be harmless.
 
 ```{r}
 onTargets(results["spacer_244"])
+```
+
+
+## On-target scoring (gRNA efficiency)
+
+Finally, we add an on-target activity score using the CasRx-RF 
+method [@casrxrf] using the `addOnTargetScores` function from `crisprDesign`
+package:
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+gs <- addOnTargetScores(gs, methods=c("casrxrf"))
+gs
 ```
 
 
