@@ -1,0 +1,150 @@
+---
+title: "Installing the crisprVerse and packages necessary for the tutorials"
+author: Jean-Philippe Fortin, Luke Hoberecht
+output: 
+  github_document:
+    toc: true
+---
+
+```{r, echo=FALSE, results="hide"}
+options("knitr.graphics.auto_pdf"=TRUE)
+```
+
+
+
+# Installation 
+
+We show in this tutorial how to install the crisprVerse packages, as well
+as other packages
+necessary for some of the [crisprVerse tutorials](https://github.com/crisprVerse/Tutorials).
+
+
+
+## Requirements
+
+The crisprVerse is supported for macOS, Linux and Windows machines.
+It requires R version >=4.2.1. Some of the third-party functionalities are not
+available for Windows machines (BWA alignment, and some of the scoring 
+functions). To download and install R, see 
+the [R-project website](https://www.r-project.org/).
+
+## Bioconductor versions
+
+The Bioconductor project has 2 concurrent versions: `release` and `devel`.
+Currently (August 2022), the release version is`3.15`, and the
+devel version is `3.16`. Release versions are created twice a year.
+
+The current version of the crisprVerse was developed on the devel version
+of Bioconductor (`3.16`) to make sure it accesses all of the latest 
+developments. Earlier versions of some of our packages are available 
+on the release version, but we do not recommend using the release version
+as most of the functionalities described in the tutorials require
+devel functionalities.
+
+See the [Bioconductor install page](https://www.bioconductor.org/install/) for
+more information re. Bioconductor. 
+
+
+## Installing the core crisprVerse packages
+
+The [crisprVerse package](https://github.com/crisprVerse/crisprVerse) installs
+the core crisprVerse packages in a single command from Bioconductor. Simply
+type in the following commands in an R session:
+
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(version="devel")
+BiocManager::install("crisprVerse")
+```
+
+Note that we specify the devel branch of Bioconductor so that we
+can use the latest functionalities.
+
+
+This will install the following packages:
+
+* [crisprBase](https://github.com/crisprVerse/crisprBase) to specify and manipulate CRISPR nucleases.
+* [crisprBowtie](https://github.com/crisprVerse/crisprBowtie) to perform gRNA spacer sequence
+alignment with Bowtie.
+* [crisprScore](https://github.com/crisprVerse/crisprScore) to annotate gRNAs with on-target
+and off-target scores.
+* [crisprDesign](https://github.com/crisprVerse/crisprDesign) to design and manipulate gRNAs
+with `GuideSet` objects. 
+* [crisprScoreData](https://github.com/crisprVerse/crisprScoreData) to use pre-trained models for the `crisprScore` package.
+
+The following command will load all of those packages in an R session:
+
+```{r, eval=FALSE}
+library(crisprVerse)
+```
+
+You can check that all crisprVerse packages are up-to-date with 
+`crisprVerse_update()`:
+
+```{r, eval=FALSE}
+crisprVerse_update()
+```
+
+## Installing data packages
+
+The following genome data packages from Bioconductor are required 
+for several of the tutorials:
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(version="devel")
+BiocManager::install("BSgenome.Mmusculus.UCSC.mm10")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor")
+```
+
+The [crisrpDesignData](https://github.com/crisprVerse/crisprDesignData) package 
+is also required for most of the tutorials and can be installed directly 
+from our GitHub page using the `devtools` package:
+
+
+```{r, eval=FALSE}
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+
+devtools::install.packages("crisprVerse/crisprDesignData")
+```
+
+## Installing optional packages
+
+For maxOS and Linux users, the 
+[crisprBwa](https://github.com/crisprVerse/crisprBwa) can be installed
+from Bioconductor using the following:
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(version="devel")
+BiocManager::install("crisprBwa")
+```
+
+
+
+
+
+# Reproducibility
+
+```{r}
+sessionInfo()
+```
+
+
+# Reproducibility
+
+```{r}
+sessionInfo()
+```
+
+# References
