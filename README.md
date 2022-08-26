@@ -28,10 +28,5 @@
 14. [Mapping gRNAs across species](https://github.com/crisprVerse/Tutorials/tree/master/Design_Cross_Reactivity)
 15. [Working with minor and major alleles](https://github.com/crisprVerse/Tutorials/tree/master/Design_Minor_Major_Allele)
 16. [Validating existing gRNA libraries](https://github.com/crisprVerse/Tutorials/tree/master/Validating_Existing_gRNA_Libraries)
-
-### Building a genome-wide database for a given nuclease
-
-17. [Building a database for the human genome using Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
-18. [Building a database for the human transcriptome using CasRx](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_CasRx)
-19. [Building a database for the human promoterome using CRISPRa](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9_CRISPRa)
+17. [Building a gRNA database across all protein-coding genes](https://github.com/crisprVerse/Tutorials/tree/master/Building_Database_Human_Cas9)
 

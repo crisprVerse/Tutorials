@@ -1,5 +1,6 @@
 ---
-title: "Building a gRNA database for the human genome using Cas9"
+title: "Building a genome-wide gRNA database"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -9,19 +10,15 @@ output:
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin
-
-Date: July 16, 2022
-
 
 # Introduction
 
-In this tutorial, we provide reproducible code to design and annotates all gRNAs in a transcriptome, for a given organism, and for a specific nuclease. As an example, we design CRISPRko gRNAs for the human transcriptome, in GRCh38 coordinates, for the commonly-used wildtype nuclease SpCas9. 
+In this tutorial, we provide reproducible code to design and annotate
+gRNAs against all human protein-coding genes using the nuclease SpCas9. 
 
 # Loading necessary packages
 
 We first load the necessary packages:
-
 
 ```{r, warning=FALSE, message=FALSE}
 library(crisprBase)
@@ -34,7 +31,8 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 
 ### Specifying the genome
 
-We specify a `BSGenome` object that contains the reference genome of the target organism:
+We specify a `BSGenome` object that contains the DNA sequence of the human
+genome in hg38 coordinates:
 
 ```{r}
 bsgenome <- BSgenome.Hsapiens.UCSC.hg38
@@ -42,45 +40,55 @@ bsgenome <- BSgenome.Hsapiens.UCSC.hg38
 
 ### Specifying the genome index
 
-We specify the file path of the genome index needed for Bowtie alignment:
+We specify the file path of the Bowtie index that we will need for
+off-target alignment:
 
 ```{r}
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
-See the `crisprBowtie` vignette for instructions about how to create a Bowtie index from a given reference genome.
+For instructions on how to build a Bowtie index from a given reference
+genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices). 
+
 
 
 ### Specifying a SNP VCF file
 
-To add a SNP annotation, we specify a path to a VCF file obtained from the dbSNP website representing common SNPs for a given dbSNP release:
+To flag gRNAs overlapping common SNPs, we specify a VCF file obtained from the
+dbSNP website containing common SNPs from the dbSNP151 release:
 
 ```{r}
 vcf <- "/Users/fortinj2/crisprIndices/snps/dbsnp151.grch38/00-common_all.vcf.gz"
 ```
 
-The VCF file can be obtained from [this website](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf).
+The VCF file was obtained from [NCBI](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf).
 
 ### Specifying the nuclease
 
-The `crisprBase` provides functionalities for creating custom `crisprNuclease` objects, and also provides already-available `crisprNuclease` objects such as the commonly-used `SpCas9`, `enAsCas12a`, `CasRx` nucleases. 
-
-Here, we will use the popular wildtype Cas9 nuclease `SpCas9`:
+We load a `CrisprNuclease` object representing the SpCas9 nuclease from 
+the `crisprBase` package:
 
 ```{r}
 data(SpCas9, package="crisprBase")
-crisprNuclease=SpCas9
+crisprNuclease <- SpCas9
 ```
+
+To learn how to specify or build a custom nuclease, see the [nuclease tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Custom_Nuclease).
+
+
 
 ### Specifying on-target scoring methods
 
-We specify which on-target scoring methods we want to use:
+We specify which on-target scoring methods should be used to score 
+the gRNAs:
 
 ```{r}
-scoring_methods=c("crisprscan", "ruleset1")
+scoring_methods <- c("deephf", "deepspcas9")
 ```
 
-More information about which scoring methods are available for a given nuclease can be obtained using the following:
+
+One can see which scoring methods are available for a given nuclease using
+the following command:
 
 
 ```{r}
@@ -90,7 +98,12 @@ crisprScore::scoringMethodsInfo
 
 ### Specifying gene models and TSS annotations
 
-To annotate gRNAs with gene context, we need to specify a gene model formatted as a `TxDbObject`. To annotate gRNAs with TSS information, we also need to specify a `GRanges` object containg TSS coordinates. The `crisprDesignData` contains such objects for both the human and mouse genomes, in GRCh38 (hg38) and GRCm38 (mm10) coordinates, respectively. Ensembl gene models were used to generate such objects.
+To annotate gRNAs with a gene and TSS annotation, we need to specify a gene model 
+formatted as a `GRangesList` object, as well as a TSS annotation with a 
+`GRanges` object. The `crisprDesignData` contains such objects for both 
+the human and mouse genomes, in GRCh38 (hg38) and GRCm38 (mm10) coordinates,
+respectively. Ensembl gene models were used to generate such objects.
+We load those objects:
 
 
 ```{r, warning=FALSE, message=FALSE}
@@ -100,12 +113,16 @@ txObject <- txdb_human
 tssObject <- tss_human
 ```
 
-The `crisprDesignData` vignette shows how to create such objects from other transcriptomes. 
+See the [gene annotation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) 
+to learn how to build such objects. The [crisprDesignData](https://github.com/crisprVerse/crisprDesignData) also has
+tons of useful information. 
 
 
 ### Specifying repeat elements
 
-To avoid designing gRNAs in repeat elements, we can specify a `GRanges` object containing repeats coordinates for a given annotation. Here, we use the object `gr.repeats.hg38` in `crisprDesignData` that contains genomic coordinates of the RepeatMasker UCSC track, for the hg38 reference genome:
+To avoid designing gRNAs targeting repeat elements, we will specify a `GRanges`
+object containing repeats coordinates for the human genome. Here, we use the object `gr.repeats.hg38` in `crisprDesignData`. It contains genomic coordinates of 
+the RepeatMasker UCSC track, for the hg38 reference genome:
 
 ```{r, warning=FALSE, message=FALSE}
 data(gr.repeats.hg38, package="crisprDesignData")
@@ -126,9 +143,27 @@ library(BiocFileCache)
 library(dbplyr)
 ```
 
-The `designCompleteAnnotation` function in `crisprDesign` provides a one-step workflow to design and annotate gRNAs targeting a coding gene for a user-specific combination of parameters.
+The `designCompleteAnnotation` function in `crisprDesign` provides a 
+one-step workflow to design and annotate all gRNAs targeting a given gene.
+The function was designed to be as comprehensive as possible to 
+design and annotate gRNAs in one step. It does the following: 
 
-Here, we design all gRNAs targeting the human KRAS gene (ENSG00000133703) for CRISPRko applications using SpCas9:
+- Extract the DNA/RNA sequences with `queryTss`/`queryTxDB`
+- Design gRNAs with `findSpacers`
+- Remove gRNAs targeting repeat elements with `removeRepeats`
+- Characterize spacer sequences with `addSequenceFeatures`
+- Find on- and off-targets with `addSpacerAlignmentsIterative`
+- Add gene annotation with `addGeneAnnotation`
+- Add TSS annotation with `addTssAnnotation`
+- Add on-target efficiency scores with `addOnTargetScores`
+- Add off-target specificity scores with `addOffTargetScores`
+- Add SNP annotation with `addSNPAnnotation`
+- Add restriction enzymes information with `addRestrictionEnzymes`
+
+
+Here, we design all CRISPRko gRNAs targeting the 
+human KRAS gene (ENSG00000133703):
+
 
 
 ```{r, warning=FALSE}
@@ -147,7 +182,8 @@ gs <- designCompleteAnnotation(queryValue="ENSG00000133703",
 ```
 
 
-The resulting object is a `GuideSet` object containing the fully annotated gRNAs, as described in the `crisprDesign` vignette. See the Tutorial `CRISPRko` to learn more about `GuideSet` objects and how to access their rich annotations.
+The resulting object is a `GuideSet` object. To learn more about what are
+`GuideSet` objects, and how to interact with them, see the [CRISPRko gRNA design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9).
 
 
 ```{r}
@@ -157,7 +193,9 @@ gs
 
 ### Converting the `GuideSet` object to a list of data.frames
 
-The `flattenGuideSet` function in `crisprDesign` is a convenience function to convert the complex `GuideSet` object into a set of 5 data.frames that can be saved as plain text files:
+The `flattenGuideSet` function in `crisprDesign` is a convenience function 
+to convert a `GuideSet` object into a set of `data.frames` that can be 
+saved as plain text files:
 
 ```{r}
 dfs <- flattenGuideSet(gs)
@@ -175,7 +213,7 @@ As an example, let's look at the first rows of the primary data.frame:
 head(dfs$primary)
 ```
 
-# Building a complete annotation for all genes
+# Building a complete gRNA database across all protein-coding genes
 
 We first get all possibles genes from our gene model:
 
@@ -184,36 +222,16 @@ gene_ids <- unique(txObject$cds$gene_id)
 head(gene_ids)
 ```
 
-and build an index to loop over for generating the GuideSet objects:
 
-```{r}
-gene_index <- seq_along(gene_ids)
-head(gene_index)
-```
-
-We specify where to save the GuideSets:
+and specify where to save the `GuideSet` objects:
 
 
 ```{r, eval=FALSE}
 dir <- "./crisprko_cas9_hg38"
 if (!dir.exists(dir)){
-  dir.create(dir, recursive=TRUE)
+    dir.create(dir, recursive=TRUE)
 }
 ```
-
-We are now ready to generate and save all data with the function `designCompleteAnnotation` from `crisprDesign`. The function was designed to be as comprehensive as possible to design and annotate gRNAs in one step. It does the following: 
-
-- Extract the DNA/RNA sequences with `queryTss`/`queryTxDB`
-- Design gRNAs with `findSpacers`
-- Remove gRNAs targeting repeat elements with `removeRepeats`
-- Characterize spacer sequences with `addSequenceFeatures`
-- Find on- and off-targets with `addSpacerAlignmentsIterative`
-- Add gene annotation with `addGeneAnnotation`
-- Add TSS annotation with `addTssAnnotation`
-- Add on-target efficiency scores with `addOnTargetScores`
-- Add off-target specificity scores with `addOffTargetScores`
-- Add SNP annotation with `addSNPAnnotation`
-- Add restriction enzymes information with `addRestrictionEnzymes`
 
 
 We are now looping over all genes to generate the data:
@@ -236,11 +254,12 @@ lapply(gene_index, function(gene){
 })
 ```
 
-This loop can be modified by the user to use an embarrassingly-parallel approach to save time using the `BiocParallel` package, for instance.
+This loop can be modified by the user to use an embarrassingly-parallel 
+approach, using the [BiocParallel](https://bioconductor.org/packages/BiocParallel/) package, for instance.
 
-# Considerations for CRISPRa/CRISPRi
 
-# Considerations for CRISPRkd (RfxCas13d)
+Building a database for CRISPRa and CRISPRi applications works similarly
+See `?designCompleteAnnotation` for more information. 
 
 
 # Reproducibility
