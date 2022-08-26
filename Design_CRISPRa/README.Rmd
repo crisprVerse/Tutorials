@@ -1,5 +1,6 @@
 ---
-title: "Using crisprDesign to design gRNAs for CRISPRa"
+title: "gRNA design for CRISPR activation (CRISPRa)"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,42 +11,26 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
-
 
 # Introduction
 
-This tutorial will demonstrate how to use `crisprDesign` to design gRNAs for CRISPR activation (CRISPRa). Specifically, it will target the human KRAS gene and use the SpCas9 nuclease, however, much of the same process can be applied to any genomic target(s) and with any CRISPR nuclease.
+This tutorial will demonstrate how to use `crisprDesign` to design gRNAs 
+for CRISPR activation (CRISPRa). Specifically, we will target the 
+human KRAS gene and use the SpCas9 nuclease.
 
 
 # Installation
 
-First, we install the necessary packages for this tutorial from Bioconductor
-using the following commands:
-
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 
 # Terminology
 
-See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar with the terminology used throughout
-this tutorial.
+See the [CRISPRko design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar 
+with the terminology used throughout this tutorial.
+
+
 
 # CRISPRa design
 
@@ -54,7 +39,7 @@ the CRISPR nuclease is engineered to lose its endonuclease activity,
 and should therefore not introduce double-stranded breaks (DSBs). 
 We will use the dead SpCas9 (dSpCas9) nuclease as an example here. 
 Note that users don't have to distinguish between dSpCas9 and SpCas9 
-when specifying the nuclease in `crisprDesign` and `crisprBase` as they 
+when specifying the nuclease in the crisprVerse as they 
 do not differ in terms of the characteristics stored in 
 the `CrisprNuclease` object.
 
@@ -68,7 +53,10 @@ region directly upstream of the gene transcription start site (TSS).
 design rules that are specific to CRISPRa applications. The `queryTss` function
 allows for specifying genomic coordinates of promoter regions. 
 The `addTssAnnotation` function annotates gRNAs for known TSSs, 
-and includes a column `dist_to_tss` that gives the distance in nucleotides between the TSS position and the PAM site of the gRNA. For CRISPRa, we recommend targeting the region 75-150bp upstream of the TSS for optimal activation; see @sanson2018optimized for 
+and includes a column `dist_to_tss` that gives the distance in
+nucleotides between the TSS position and the PAM site of the gRNA. 
+For CRISPRa, we recommend targeting the region 75-150bp upstream of 
+the TSS for optimal activation; see @sanson2018optimized for 
 more information. Finally, the function `addCrispraiScores` adds on-target 
 activity scores based on the work of [@crisprai]. 
 
@@ -95,9 +83,6 @@ on `tss_human` and how to create similar TSS annotation objects,
 see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) 
 tutorial.
 
-
-
-
 We load the TSS coordinates stored in the `tss_human` object
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
@@ -107,7 +92,6 @@ data("tss_human", package="crisprDesignData")
 and query for KRAS using the `queryTss` function from `crisprDesign`:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}
-library(crisprDesign)
 target_window <- c(-500, 0)
 target_region <- queryTss(tss_human,
                           queryColumn="gene_symbol",
@@ -144,7 +128,7 @@ gs
 
 Next, we annotate our candidate gRNAs to assess quality. There are several 
 functions in `crisprDesign` that provide annotation for features that are 
-nonspecific to CRISPRa, for which we refer the reader to the
+not specific to CRISPRa, for which we refer the reader to the
 [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) tutorial for more information. The sections below will 
 cover annotation functions that are of particular interest to 
 CRISPRa applications.
@@ -172,11 +156,12 @@ tssAnnotation(gs)
 ## Adding spacer alignments with TSS annotation
 
 As with all CRISPR applications, off-targets is an important concern in 
-assessing gRNA quality. While this concern is somewhat moderated for CRISPRa, since the dead CRISPR nuclease does not make DSBs, we should be aware of off-targets 
-occuring in the promoter regions of other genes. This can be handled by 
-passing our `tssObject` to the `addSpacerAlignments` function. We will search 
-for up to 2 mismatches and increase the size of our `tss_window` to err 
-on the safe side. 
+assessing gRNA quality. While this concern is somewhat moderated for 
+CRISPRa, since the dead CRISPR nuclease does not make DSBs, we should 
+be aware of off-targets occuring in the promoter regions of other genes. 
+This can be handled by passing our `tssObject` to the `addSpacerAlignments` 
+function. We will search  for up to 2 mismatches and increase the 
+size of our `tss_window` to err on the safe side. 
 
 Similar to the CRISPRko design tutorial, we need to specify a Bowtie index
 of the human referenge genome; see the [Building genome indices for short read aligners](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) tutorial to learn how to create such an index. 
@@ -188,7 +173,7 @@ tutorial:
 index_path <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
-(this needs to be changed by users). We are ready to add on- and off-target 
+(this needs to be changed by users). We are now ready to add on- and off-target 
 alignments:
 
 ```{r, warning=FALSE, message=FALSE, results='hide'}

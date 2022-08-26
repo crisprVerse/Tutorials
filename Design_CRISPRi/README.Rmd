@@ -1,5 +1,6 @@
 ---
-title: "Using crisprDesign to design gRNAs for CRISPRi"
+title: "gRNA design for CRISPR interference (CRISPRi)"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,42 +11,24 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
 
 
 # Introduction
 
-This tutorial will demonstrate how to use `crisprDesign` to design gRNAs for CRISPR interference (CRISPRi). Specifically, it will target the human KRAS gene and use the SpCas9 nuclease, however, much of the same process can be applied to any genomic target(s) and with any CRISPR nuclease.
-
+This tutorial will demonstrate how to use `crisprDesign` to design gRNAs 
+for CRISPR interference (CRISPRi). Specifically, we will target the 
+human KRAS gene and use the SpCas9 nuclease.
 
 # Installation
 
-First, we install the necessary packages for this tutorial from Bioconductor
-using the following commands:
-
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 
 # Terminology
 
-See the [CRISPRko design vignette](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar with the terminology used throughout
-this tutorial.
+See the [CRISPRko design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar 
+with the terminology used throughout this tutorial.
 
 
 # CRISPRi design
@@ -55,7 +38,7 @@ the CRISPR nuclease is engineered to lose its endonuclease activity,
 and should therefore not introduce double-stranded breaks (DSBs). 
 We will use the dead SpCas9 (dSpCas9) nuclease as an example here. 
 Note that users don't have to distinguish between dSpCas9 and SpCas9 
-when specifying the nuclease in `crisprDesign` and `crisprBase` as they 
+when specifying the nuclease in the crisprVerse as they 
 do not differ in terms of the characteristics stored in 
 the `CrisprNuclease` object.
 
@@ -96,7 +79,8 @@ gene using the SpCas9 nuclease. To accomplish this, we want our gRNAs to
 target the region downstream of the KRAS TSS; let's consider the window
 containing 500bp immediately downstream of the TSS to explore candidate gRNAs.
 
-We first need to retrieve the TSS coordinates for KRAS. These data are conveniently stored in the 
+We first need to retrieve the TSS coordinates for KRAS. 
+These data are conveniently stored in the 
 `crisprDesignData` package as the dataset `tss_human`. For more information 
 on `tss_human` and how to create similar TSS annotation objects, 
 see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) 
@@ -148,7 +132,7 @@ gs
 
 Next, we annotate our candidate gRNAs to assess quality. There are several 
 functions in `crisprDesign` that provide annotation for features that are 
-nonspecific to CRISPRi, for which we refer the reader to the
+not specific to CRISPRi, for which we refer the reader to the
 [CRISPRko design with Cas9](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) tutorial for more information. The sections below will 
 cover annotation functions that are of particular interest to 
 CRISPRi applications.
