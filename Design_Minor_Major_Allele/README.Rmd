@@ -1,5 +1,6 @@
 ---
 title: "Using crisprDesign to design gRNAs with minor and major alleles"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -8,10 +9,6 @@ output:
 ```{r, echo=FALSE, results="hide"}
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
 
 
 # Introduction
@@ -44,28 +41,12 @@ of the sequence(s), including possible variations in such, he or she
 is designing gRNAs for.
 
 
+
 # Installation
 
-This tutorial used several packages from Bioconductor that can be
-installed using the following commands:
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the crisprVerse packages necessary
+for this tutorial. 
 
-
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor")
-```
-
-and the following package from GitHub:
-
-```{r, eval=FALSE}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
 
 
 # Terminology
@@ -73,22 +54,7 @@ devtools::install_github("Jfortin1/crisprDesignData")
 See the [CRISPRko design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) to get familiar 
 with the terminology used throughout this tutorial.
 
-
-# Use cases with major and minor alleles
-
-The following examples use the reference, and variations of the reference,
-genome sequence for Homo sapiens (UCSC version hg38, based on GRCh38.p12). 
-For documentation on each `BSgenome` object, pass the object to `help()` or 
-preceed it with `?`, as shown below:
-
-```{r, eval=FALSE}
-help(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major)
-
-## or
-
-?BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major
-```
-
+# gRNA design
 
 ## Loading packages
 
@@ -103,14 +69,33 @@ library(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major)
 library(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor)
 ```
 
+We will also load the gene annotation model `txdb_human` from the
+`crisprDesignData` package:
+
+```{r}
+data(txdb_human, package="crisprDesignData")
+```
+
+
+The `BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major` and 
+`BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor` packages are `BSgenome` 
+packages that contain the major and minor alleles of the human reference
+genome hg38 based dbSNP151.For more information, type the following: 
+
+
+```{r, eval=FALSE}
+help(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major)
+help(BSgenome.Hsapiens.UCSC.hg38.dbSNP151.minor)
+```
 
 ## Designing gRNAs for human (hg38) with injected major alleles
 
 It is worth noting that the human reference genome sequence (GRCh38.p12), 
 does not give the major allele 
 (i.e. most common allele in a population) at all nucleotide locations.
-Indeed, given that it was historically constructed from a small set of human genomes, it contains minor alleles that were common across this set of human
-genomes.
+Indeed, given that it was historically constructed from a small set of 
+human genomes, it contains minor alleles that were common across this 
+set of human genomes.
 
 For example, in the coding region (CDS) of the human gene SMC3, 
 the reference genome contains the minor allele of the SNP rs2419565; the
@@ -120,7 +105,7 @@ frequency is 0.99423 as indicated in the table here [here](https://www.ncbi.nlm.
 
 Designing gRNAs targeting the CDS of SMC3 with the SpCas9 nuclease returns
 one gRNA that overlaps this SNP. Below, we first construct a 
-`GuideSet` object using the reference `BSgenome` 
+`GuideSet` object using the reference `BSgenome` object:
 
 
 ```{r, collapse=TRUE, results='markup'}
@@ -142,7 +127,7 @@ gs_major <- findSpacers(smc3,
                         bsgenome=BSgenome.Hsapiens.UCSC.hg38.dbSNP151.major)
 ```
 
-Let's compare the protospacer sequence from both objects:
+Let's compare the protospacer sequences from both objects:
 
 ```{r, collapse=TRUE, results='markup'}
 

@@ -1,5 +1,6 @@
 ---
 title: "Using crisprDesign to design gRNAs for custom sequences"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,11 +11,6 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
-
-
 # Introduction
 
 In this tutorial, we illustrate the main functionalities of  `crisprDesign` 
@@ -22,28 +18,12 @@ for designing gRNAs for custom sequences. To design gRNAs for targets
 located in an organism genome, see the [introductory CRISPRko tutorial ](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9). 
 
 
-# Getting started
 
-## Installation 
+# Installation
 
-First, we install the necessary packages from Bioconductor
-using the following commands:
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
 
 # Use case: designing gRNAs against EGFP
 
@@ -97,7 +77,7 @@ input that we will use to design gRNAs.
 
 ## Constructing the `GuideSet` object:
 
-Next, we design all possible SpCas0 gRNAs targeting EGFP. First, we load
+Next, we design all possible SpCas9 gRNAs targeting EGFP. First, we load
 the SpCas9 object from the `crisprBase` package:
 
 ```{r}
@@ -141,7 +121,8 @@ first specify the path of a bowtie index constructed on the human genome:
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 ```
 
-For instructions on how to build a Bowtie index from a given reference genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) or the [crisprBowtie page](https://github.com/Jfortin1/crisprBowtie) .
+For instructions on how to build a Bowtie index from a given reference genome, 
+see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices). 
 
 To annotate off-targets with genomic context, for instance to know whether 
 or not they are located in coding regions, we will also need a gene model

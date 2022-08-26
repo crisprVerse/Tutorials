@@ -1,5 +1,6 @@
 ---
 title: "Using crisprDesign to design gRNAs for optical pooled screening (OPS)"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -9,10 +10,6 @@ bibliography: references.bib
 ```{r, echo=FALSE, results="hide"}
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
 
 
 # Introduction
@@ -24,7 +21,7 @@ are partially sequenced from the 5-prime end; the length of these
 truncated sequences, or barcodes, which corresponds to the number of 
 sequencing cycles, is fixed and chosen by the experimentalist. From a 
 gRNA design perspective, additional constraints are needed to ensure 
-sufficient dissimilarity between the rruncated barcodes for their 
+sufficient dissimilarity between the truncated barcodes for their 
 identification during the analysis.
 
 This tutorial will demonstrate how to design gRNAs for use in 
@@ -32,31 +29,14 @@ optical pooled screens, with emphasis on the constraints described
 above. Common gRNA design steps that are not specific to OPS are omitted 
 in this tutorial (e.g. off-target search, or on-target activity prediction)
 here. Users can peruse through the list of [available tutorials](https://github.com/crisprVerse/Tutorials) for more information
-regarind application-specific gRNA design rules.
+regarding application-specific gRNA design rules.
+
 
 
 # Installation
 
-The Bioconductor packages needed in this tutorial can be installed 
-using the following commands:
-
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-The GitHub packages needed in this tutorial can be installed using the 
-following commands:
-
-```{r, eval=FALSE}
-if (!requireNamespace("devtools", quietly = TRUE))
-    install.packages("devtools")
-
-devtools::install_github("crisprVerse/crisprDesignData")
-```
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 
 # Terminology
@@ -107,7 +87,8 @@ data(txdb_human, package="crisprDesignData")
 For more information on `txdb_human` and how to create similar gene annotation objects, see the [Building a gene annotation object](https://github.com/crisprVerse/Tutorials/tree/master/Building_Gene_Annotation) tutorial.
 
 
-Next, we find the CDS coordinates for our genes using the `queryTxObject` function:
+Next, we find the CDS coordinates for our genes using 
+the `queryTxObject` function:
 
 ```{r}
 target_genes <- c("KRAS", "HRAS", "NRAS")
@@ -125,7 +106,8 @@ gs <- findSpacers(target_regions,
                   bsgenome=BSgenome.Hsapiens.UCSC.hg38)
 ```
 
-As we will want to distinguish which gene each spacer targets, we will add `gene_symbol` and `gene_id` columns from `target_regions`.
+As we will want to distinguish which gene each spacer targets, 
+we will add `gene_symbol` and `gene_id` columns from `target_regions`.
 
 ```{r}
 gene_info <- target_regions[gs$region]
@@ -136,7 +118,9 @@ gs$gene_id <- gene_info$gene_id
 
 ## Adding OPS barcodes
 
-We can add our OPS barcodes to the GuideSet with the `addOpsBarcodes` function. This function extracts the `n_cycles` nucleotides from the 5-prime end of our spacers and stores them in the `opsBarcode` column:
+We can add our OPS barcodes to the GuideSet with the `addOpsBarcodes` function.
+This function extracts the `n_cycles` nucleotides from the 5-prime end of
+our spacers and stores them in the `opsBarcode` column:
 
 ```{r}
 gs <- addOpsBarcodes(gs,
@@ -167,8 +151,9 @@ dist
 Note that the output is a sparse matrix, so the barcodes along the diagonal
 (i.e., compared against themselves) return `.`, or a distance of zero. 
 To compare one set of barcodes against another, we can pass the other set
-to the `targetBarcodes` argument (the former barcode set being passed to 
-the `queryBarcodes` argument, which is compared against itself when `targetBarcodes` is `NULL`):
+to the `targetBarcodes` argument (the former barcode set being passed 
+to the `queryBarcodes` argument, which is compared against 
+itself when `targetBarcodes` is `NULL`):
 
 ```{r}
 dist <- getBarcodeDistanceMatrix(barcodes[1:5],
@@ -183,7 +168,10 @@ of spacers during sequencing. This minimum distance edit (`min_dist_edit`)
 relies on the accuracy of various steps in the experiment. Suppose,
 as a conservative estimate, that we can expect no more than two edits 
 per barcode in our example. A `min_dist_edit` of `3` should 
-suffice. Setting the `binnarize` argument to `TRUE`, and passing our minimum distance edit value to `min_dist_edit` will binarize the output, flagging barcodes (with a value of `1`) that are too similar and should not both be included in our library:
+suffice. Setting the `binnarize` argument to `TRUE`, and passing 
+our minimum distance edit value to `min_dist_edit` will binarize the
+output, flagging barcodes (with a value of `1`) that are too similar
+and should not both be included in our library:
 
 ```{r}
 dist <- getBarcodeDistanceMatrix(barcodes[1:5],

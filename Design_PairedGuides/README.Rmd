@@ -1,5 +1,6 @@
 ---
 title: "Using crisprDesign to design paired gRNAs"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -10,10 +11,6 @@ bibliography: references.bib
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: `r format(Sys.time(), '%d %B, %Y')`
-
 
 # Introduction
 
@@ -22,26 +19,11 @@ for designing pairs of gRNAs.
 
 # Getting started
 
-## Installation 
+# Installation
 
-First, we install the necessary packages from Bioconductor
-using the following commands:
+See the [Installation tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation) to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
-```{r, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-```{r, eval=FALSE, warning=FALSE, message=FALSE, results='hide'}
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
 
 ## Terminology
 
@@ -91,13 +73,13 @@ data(SpCas9, package="crisprBase")
 
 Let's get the genomic coordinates of the second exon.
 First, we obtain from `crisprDesignData` a `GRangesList` object that defines
-the genomic coordinates (hg38 genome) of human protein-coding:
+the genomic coordinates (hg38 genome) of human protein-coding genes:
 
 ```{r}
 data(txdb_human, package="crisprDesignData")
 ```
 
-We get the exonic coordinates of the canonical transcript ENST00000311936 
+We then get the exonic coordinates of the canonical transcript ENST00000311936 
 using the function `queryTxObject` from `crisprDesign`:
 
 
@@ -109,7 +91,7 @@ exons <- queryTxObject(txObject=txdb_human,
 exons
 ```
 
-Finally, elect the second exon:
+Finally, we select the second exon:
 
 ```{r}
 exon <- exons[exons$exon_rank==2]
@@ -120,8 +102,8 @@ exon
 The exon is on chr12, and spans the region 25245274-25245395 (122 
 nucleotides in length). We aim to design gRNAs pairs for which one 
 gRNA is located upstream of the exon, and another located downstream 
-of the exon. To be able to find good gRNA caniddate, let's define those regions
-to have 100 nucleotides on each side:
+of the exon. To be able to find good gRNA candddates, let's define those 
+regions to have 100 nucleotides on each side:
 
 
 ```{r}
@@ -133,7 +115,7 @@ names(regionDownstream) <- "downstreamTarget"
 ```
 
 Similar to the `findSpacers` function in `crisprDesign`, we will need
-to specify a BSgenome package containing the reference genome DNA
+to specify a `BSgenome` object containing the reference genome DNA
 sequences:
 
 ```{r}
@@ -290,8 +272,8 @@ pairs <- addSpacerAlignments(pairs,
                              n_mismatches=3)
 ```
 
-We are in luck, none of the spacer sequences have off-target in coding 
-sequences of other genes:
+We are in luck, none of the spacer sequences has an off-target in the coding 
+region of other genes:
 
 
 ```{r}

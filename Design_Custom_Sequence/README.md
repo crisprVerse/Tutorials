@@ -1,26 +1,28 @@
 Using crisprDesign to design gRNAs for custom sequences
 ================
+Jean-Philippe Fortin, Luke Hoberecht
 
--   [Introduction](#introduction)
--   [Getting started](#getting-started)
-    -   [Installation](#installation)
--   [Use case: designing gRNAs against
-    EGFP](#use-case-designing-grnas-against-egfp)
-    -   [Loading necessary packages](#loading-necessary-packages)
-    -   [Obtaining the DNA sequence](#obtaining-the-dna-sequence)
-    -   [Constructing the `GuideSet`
-        object:](#constructing-the-guideset-object)
-    -   [Finding off-targets in the human genome to find gRNAs specific
-        to
-        EGFP](#finding-off-targets-in-the-human-genome-to-find-grnas-specific-to-egfp)
-    -   [Predicting on-target activity](#predicting-on-target-activity)
-    -   [Final selection](#final-selection)
--   [Session Info](#session-info)
--   [References](#references)
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: 17 August, 2022
+-   <a href="#introduction" id="toc-introduction">Introduction</a>
+-   <a href="#installation" id="toc-installation">Installation</a>
+-   <a href="#use-case-designing-grnas-against-egfp"
+    id="toc-use-case-designing-grnas-against-egfp">Use case: designing gRNAs
+    against EGFP</a>
+    -   <a href="#loading-necessary-packages"
+        id="toc-loading-necessary-packages">Loading necessary packages</a>
+    -   <a href="#obtaining-the-dna-sequence"
+        id="toc-obtaining-the-dna-sequence">Obtaining the DNA sequence</a>
+    -   <a href="#constructing-the-guideset-object"
+        id="toc-constructing-the-guideset-object">Constructing the
+        <code>GuideSet</code> object:</a>
+    -   <a
+        href="#finding-off-targets-in-the-human-genome-to-find-grnas-specific-to-egfp"
+        id="toc-finding-off-targets-in-the-human-genome-to-find-grnas-specific-to-egfp">Finding
+        off-targets in the human genome to find gRNAs specific to EGFP</a>
+    -   <a href="#predicting-on-target-activity"
+        id="toc-predicting-on-target-activity">Predicting on-target activity</a>
+    -   <a href="#final-selection" id="toc-final-selection">Final selection</a>
+-   <a href="#session-info" id="toc-session-info">Session Info</a>
+-   <a href="#references" id="toc-references">References</a>
 
 # Introduction
 
@@ -30,28 +32,12 @@ for targets located in an organism genome, see the [introductory
 CRISPRko
 tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9).
 
-# Getting started
+# Installation
 
-## Installation
-
-First, we install the necessary packages from Bioconductor using the
-following commands:
-
-``` r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-``` r
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
+See the [Installation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
+to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 # Use case: designing gRNAs against EGFP
 
@@ -109,7 +95,7 @@ input that we will use to design gRNAs.
 
 ## Constructing the `GuideSet` object:
 
-Next, we design all possible SpCas0 gRNAs targeting EGFP. First, we load
+Next, we design all possible SpCas9 gRNAs targeting EGFP. First, we load
 the SpCas9 object from the `crisprBase` package:
 
 ``` r
@@ -182,8 +168,7 @@ bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/hg38/hg38"
 
 For instructions on how to build a Bowtie index from a given reference
 genome, see the [genome index
-tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices)
-or the [crisprBowtie page](https://github.com/Jfortin1/crisprBowtie) .
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices).
 
 To annotate off-targets with genomic context, for instance to know
 whether or not they are located in coding regions, we will also need a
@@ -285,7 +270,7 @@ gs <- addOnTargetScores(gs, methods="deephf")
 
     ## [addOnTargetScores] Adding deephf scores.
 
-    ## snapshotDate(): 2022-04-26
+    ## snapshotDate(): 2022-08-23
 
     ## see ?crisprScoreData and browseVignettes('crisprScoreData') for documentation
 
@@ -382,7 +367,7 @@ Users can select the top gRNAs as their control gRNAs.
 sessionInfo()
 ```
 
-    ## R Under development (unstable) (2022-03-21 r81954)
+    ## R version 4.2.1 (2022-06-23)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Catalina 10.15.7
     ## 
@@ -398,65 +383,65 @@ sessionInfo()
     ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.3.5              
-    ##  [3] AnnotationHub_3.3.9               BiocFileCache_2.3.4              
-    ##  [5] dbplyr_2.1.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
-    ##  [7] BSgenome_1.64.0                   rtracklayer_1.55.4               
-    ##  [9] GenomicRanges_1.48.0              crisprDesignData_0.99.14         
-    ## [11] crisprDesign_0.99.130             crisprBase_1.1.5                 
-    ## [13] Biostrings_2.64.0                 GenomeInfoDb_1.32.2              
-    ## [15] XVector_0.35.0                    IRanges_2.30.0                   
-    ## [17] S4Vectors_0.33.11                 BiocGenerics_0.42.0              
+    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.5.0              
+    ##  [3] AnnotationHub_3.5.0               BiocFileCache_2.5.0              
+    ##  [5] dbplyr_2.2.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
+    ##  [7] BSgenome_1.65.2                   rtracklayer_1.57.0               
+    ##  [9] GenomicRanges_1.49.1              crisprDesignData_0.99.17         
+    ## [11] crisprDesign_0.99.133             crisprBase_1.1.5                 
+    ## [13] Biostrings_2.65.2                 GenomeInfoDb_1.33.5              
+    ## [15] XVector_0.37.0                    IRanges_2.31.2                   
+    ## [17] S4Vectors_0.35.1                  BiocGenerics_0.43.1              
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] rjson_0.2.21                  ellipsis_0.3.2               
-    ##  [3] Rbowtie_1.36.0                rstudioapi_0.13              
-    ##  [5] bit64_4.0.5                   interactiveDisplayBase_1.33.0
-    ##  [7] AnnotationDbi_1.57.1          fansi_1.0.2                  
-    ##  [9] xml2_1.3.3                    cachem_1.0.6                 
-    ## [11] knitr_1.37                    jsonlite_1.8.0               
-    ## [13] Rsamtools_2.11.0              png_0.1-7                    
-    ## [15] shiny_1.7.1                   BiocManager_1.30.16          
-    ## [17] readr_2.1.2                   compiler_4.2.0               
-    ## [19] httr_1.4.2                    basilisk_1.9.2               
-    ## [21] assertthat_0.2.1              Matrix_1.4-0                 
-    ## [23] fastmap_1.1.0                 cli_3.3.0                    
-    ## [25] later_1.3.0                   htmltools_0.5.2              
-    ## [27] prettyunits_1.1.1             tools_4.2.0                  
-    ## [29] glue_1.6.2                    GenomeInfoDbData_1.2.7       
-    ## [31] crisprBowtie_1.1.1            dplyr_1.0.8                  
-    ## [33] rappdirs_0.3.3                Rcpp_1.0.8.3                 
-    ## [35] Biobase_2.55.0                vctrs_0.3.8                  
-    ## [37] crisprBwa_1.1.2               crisprScore_1.1.13           
-    ## [39] xfun_0.30                     stringr_1.4.0                
-    ## [41] mime_0.12                     lifecycle_1.0.1              
-    ## [43] restfulr_0.0.13               XML_3.99-0.9                 
-    ## [45] zlibbioc_1.41.0               basilisk.utils_1.9.1         
-    ## [47] vroom_1.5.7                   VariantAnnotation_1.41.3     
-    ## [49] hms_1.1.1                     promises_1.2.0.1             
-    ## [51] MatrixGenerics_1.7.0          parallel_4.2.0               
-    ## [53] SummarizedExperiment_1.25.3   yaml_2.3.5                   
-    ## [55] curl_4.3.2                    memoise_2.0.1                
-    ## [57] reticulate_1.25               biomaRt_2.51.3               
-    ## [59] stringi_1.7.6                 RSQLite_2.2.12               
-    ## [61] BiocVersion_3.15.0            BiocIO_1.5.0                 
-    ## [63] randomForest_4.7-1            GenomicFeatures_1.47.13      
-    ## [65] filelock_1.0.2                BiocParallel_1.29.18         
-    ## [67] rlang_1.0.4                   pkgconfig_2.0.3              
-    ## [69] matrixStats_0.61.0            bitops_1.0-7                 
-    ## [71] evaluate_0.15                 lattice_0.20-45              
-    ## [73] purrr_0.3.4                   GenomicAlignments_1.31.2     
-    ## [75] bit_4.0.4                     tidyselect_1.1.2             
-    ## [77] magrittr_2.0.2                R6_2.5.1                     
-    ## [79] generics_0.1.2                DelayedArray_0.21.2          
-    ## [81] DBI_1.1.2                     pillar_1.7.0                 
-    ## [83] withr_2.5.0                   KEGGREST_1.35.0              
-    ## [85] RCurl_1.98-1.6                tibble_3.1.6                 
-    ## [87] dir.expiry_1.3.0              crayon_1.5.0                 
-    ## [89] utf8_1.2.2                    tzdb_0.2.0                   
-    ## [91] rmarkdown_2.13                progress_1.2.2               
-    ## [93] grid_4.2.0                    blob_1.2.2                   
-    ## [95] digest_0.6.29                 xtable_1.8-4                 
-    ## [97] httpuv_1.6.5                  Rbwa_1.1.0
+    ##  [1] bitops_1.0-7                  matrixStats_0.62.0           
+    ##  [3] bit64_4.0.5                   filelock_1.0.2               
+    ##  [5] progress_1.2.2                httr_1.4.4                   
+    ##  [7] tools_4.2.1                   utf8_1.2.2                   
+    ##  [9] R6_2.5.1                      DBI_1.1.3                    
+    ## [11] tidyselect_1.1.2              prettyunits_1.1.1            
+    ## [13] bit_4.0.4                     curl_4.3.2                   
+    ## [15] compiler_4.2.1                crisprBowtie_1.1.1           
+    ## [17] cli_3.3.0                     Biobase_2.57.1               
+    ## [19] basilisk.utils_1.9.1          xml2_1.3.3                   
+    ## [21] DelayedArray_0.23.1           randomForest_4.7-1.1         
+    ## [23] readr_2.1.2                   rappdirs_0.3.3               
+    ## [25] stringr_1.4.1                 digest_0.6.29                
+    ## [27] Rsamtools_2.13.4              rmarkdown_2.15.2             
+    ## [29] crisprScore_1.1.14            basilisk_1.9.2               
+    ## [31] pkgconfig_2.0.3               htmltools_0.5.3              
+    ## [33] MatrixGenerics_1.9.1          fastmap_1.1.0                
+    ## [35] rlang_1.0.4                   rstudioapi_0.14              
+    ## [37] RSQLite_2.2.16                shiny_1.7.2                  
+    ## [39] BiocIO_1.7.1                  generics_0.1.3               
+    ## [41] jsonlite_1.8.0                vroom_1.5.7                  
+    ## [43] BiocParallel_1.31.12          dplyr_1.0.9                  
+    ## [45] VariantAnnotation_1.43.3      RCurl_1.98-1.8               
+    ## [47] magrittr_2.0.3                GenomeInfoDbData_1.2.8       
+    ## [49] Matrix_1.4-1                  Rcpp_1.0.9                   
+    ## [51] fansi_1.0.3                   reticulate_1.25              
+    ## [53] Rbowtie_1.37.0                lifecycle_1.0.1              
+    ## [55] stringi_1.7.8                 yaml_2.3.5                   
+    ## [57] SummarizedExperiment_1.27.1   zlibbioc_1.43.0              
+    ## [59] grid_4.2.1                    blob_1.2.3                   
+    ## [61] promises_1.2.0.1              parallel_4.2.1               
+    ## [63] crayon_1.5.1                  crisprBwa_1.1.3              
+    ## [65] dir.expiry_1.5.0              lattice_0.20-45              
+    ## [67] GenomicFeatures_1.49.6        hms_1.1.2                    
+    ## [69] KEGGREST_1.37.3               knitr_1.40                   
+    ## [71] pillar_1.8.1                  rjson_0.2.21                 
+    ## [73] codetools_0.2-18              biomaRt_2.53.2               
+    ## [75] BiocVersion_3.16.0            XML_3.99-0.10                
+    ## [77] glue_1.6.2                    evaluate_0.16                
+    ## [79] BiocManager_1.30.18           httpuv_1.6.5                 
+    ## [81] png_0.1-7                     vctrs_0.4.1                  
+    ## [83] tzdb_0.3.0                    purrr_0.3.4                  
+    ## [85] assertthat_0.2.1              cachem_1.0.6                 
+    ## [87] xfun_0.32                     mime_0.12                    
+    ## [89] Rbwa_1.1.0                    xtable_1.8-4                 
+    ## [91] restfulr_0.0.15               later_1.3.0                  
+    ## [93] tibble_3.1.8                  GenomicAlignments_1.33.1     
+    ## [95] AnnotationDbi_1.59.1          memoise_2.0.1                
+    ## [97] interactiveDisplayBase_1.35.0 ellipsis_0.3.2
 
 # References

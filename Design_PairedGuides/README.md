@@ -1,19 +1,18 @@
 Using crisprDesign to design paired gRNAs
 ================
+Jean-Philippe Fortin, Luke Hoberecht
 
--   [Introduction](#introduction)
--   [Getting started](#getting-started)
-    -   [Installation](#installation)
-    -   [Terminology](#terminology)
-    -   [Paired gRNA design overview](#paired-grna-design-overview)
--   [A simple example: deleting a KRAS exon with a pair of
-    gRNAs](#a-simple-example-deleting-a-kras-exon-with-a-pair-of-grnas)
--   [Session Info](#session-info)
--   [References](#references)
-
-Authors: Jean-Philippe Fortin, Luke Hoberecht
-
-Date: 15 August, 2022
+-   <a href="#introduction" id="toc-introduction">Introduction</a>
+-   <a href="#getting-started" id="toc-getting-started">Getting started</a>
+-   <a href="#installation" id="toc-installation">Installation</a>
+    -   <a href="#terminology" id="toc-terminology">Terminology</a>
+    -   <a href="#paired-grna-design-overview"
+        id="toc-paired-grna-design-overview">Paired gRNA design overview</a>
+-   <a href="#a-simple-example-deleting-a-kras-exon-with-a-pair-of-grnas"
+    id="toc-a-simple-example-deleting-a-kras-exon-with-a-pair-of-grnas">A
+    simple example: deleting a KRAS exon with a pair of gRNAs</a>
+-   <a href="#session-info" id="toc-session-info">Session Info</a>
+-   <a href="#references" id="toc-references">References</a>
 
 # Introduction
 
@@ -22,26 +21,12 @@ In this tutorial, we illustrate the main functionalities of
 
 # Getting started
 
-## Installation
+# Installation
 
-First, we install the necessary packages from Bioconductor using the
-following commands:
-
-``` r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("crisprBase")
-BiocManager::install("crisprDesign")
-BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
-```
-
-as well as the data package `crisprDesignData` from GitHub:
-
-``` r
-install.packages("devtools")
-devtools::install_github("Jfortin1/crisprDesignData")
-```
+See the [Installation
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Installation)
+to learn how to install the packages necessary for this tutorial:
+`crisprDesign`, `crisprDesignData`
 
 ## Terminology
 
@@ -53,9 +38,9 @@ to get familiar with the terminology used throughout this tutorial.
 
 There are several applications that require the design of gRNA pairs:
 
-1.  Double nicking with CRISPR/Cas9 (Ran et al. et al. 2013)
+1.  Double nicking with CRISPR/Cas9 (Ran et al. 2013)
 2.  Dual-promoter screening systems (Han et al. 2017)
-3.  Multiplexing gRNAs with enAsCas12a (DeWeirdt et al. et al. 2021)
+3.  Multiplexing gRNAs with enAsCas12a (DeWeirdt et al. 2021)
 4.  Nanopore Cas9-targeted sequencing (nCATS) (Gilpatrick et al. 2020)
 
 The `crisprDesign` package provides an infrastructure to store an
@@ -93,13 +78,13 @@ data(SpCas9, package="crisprBase")
 
 Let’s get the genomic coordinates of the second exon. First, we obtain
 from `crisprDesignData` a `GRangesList` object that defines the genomic
-coordinates (hg38 genome) of human protein-coding:
+coordinates (hg38 genome) of human protein-coding genes:
 
 ``` r
 data(txdb_human, package="crisprDesignData")
 ```
 
-We get the exonic coordinates of the canonical transcript
+We then get the exonic coordinates of the canonical transcript
 ENST00000311936 using the function `queryTxObject` from `crisprDesign`:
 
 ``` r
@@ -142,7 +127,7 @@ exons
     ##   -------
     ##   seqinfo: 25 sequences (1 circular) from hg38 genome
 
-Finally, elect the second exon:
+Finally, we select the second exon:
 
 ``` r
 exon <- exons[exons$exon_rank==2]
@@ -169,8 +154,8 @@ exon
 The exon is on chr12, and spans the region 25245274-25245395 (122
 nucleotides in length). We aim to design gRNAs pairs for which one gRNA
 is located upstream of the exon, and another located downstream of the
-exon. To be able to find good gRNA caniddate, let’s define those regions
-to have 100 nucleotides on each side:
+exon. To be able to find good gRNA candddates, let’s define those
+regions to have 100 nucleotides on each side:
 
 ``` r
 library(IRanges)
@@ -181,7 +166,7 @@ names(regionDownstream) <- "downstreamTarget"
 ```
 
 Similar to the `findSpacers` function in `crisprDesign`, we will need to
-specify a BSgenome package containing the reference genome DNA
+specify a `BSgenome` object containing the reference genome DNA
 sequences:
 
 ``` r
@@ -290,7 +275,7 @@ preferred. For double nicking with CRISPR/Cas9, PAM-out configuration is
 preferred. For applications using a dual-promoter system, no
 configuration is preferred.
 
-<img src="./figures/paired_simplified.svg" title="Different PAM orientations for Cas9 paired gRNAs" alt="Different PAM orientations for Cas9 paired gRNAs" width="75%" style="display: block; margin: auto;" />
+<img src="./figures/paired_simplified.svg" alt="Different PAM orientations for Cas9 paired gRNAs" width="75%" style="display: block; margin: auto;" />
 
 The function `pamDistance` returns the distance between the PAM sites of
 the two gRNAs. The function `cutLength` returns the distance between the
@@ -367,7 +352,7 @@ pairs <- addOnTargetScores(pairs, methods="deephf")
 
     ## [addOnTargetScores] Adding deephf scores.
 
-    ## snapshotDate(): 2022-04-26
+    ## snapshotDate(): 2022-08-23
 
     ## see ?crisprScoreData and browseVignettes('crisprScoreData') for documentation
 
@@ -424,8 +409,8 @@ pairs <- addSpacerAlignments(pairs,
     ## [runCrisprBowtie] Using BSgenome.Hsapiens.UCSC.hg38 
     ## [runCrisprBowtie] Searching for SpCas9 protospacers
 
-We are in luck, none of the spacer sequences have off-target in coding
-sequences of other genes:
+We are in luck, none of the spacer sequences has an off-target in the
+coding region of other genes:
 
 ``` r
 good1 <- first(pairs)$n1_c==0 & first(pairs)$n2_c==0 & first(pairs)$n3_c==0
@@ -463,7 +448,7 @@ spacers(pairs)
 sessionInfo()
 ```
 
-    ## R Under development (unstable) (2022-03-21 r81954)
+    ## R version 4.2.1 (2022-06-23)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Catalina 10.15.7
     ## 
@@ -479,65 +464,65 @@ sessionInfo()
     ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.3.5              
-    ##  [3] AnnotationHub_3.3.9               BiocFileCache_2.3.4              
-    ##  [5] dbplyr_2.1.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
-    ##  [7] BSgenome_1.64.0                   rtracklayer_1.55.4               
-    ##  [9] Biostrings_2.64.0                 XVector_0.35.0                   
-    ## [11] GenomicRanges_1.48.0              GenomeInfoDb_1.32.2              
-    ## [13] IRanges_2.30.0                    S4Vectors_0.33.11                
-    ## [15] BiocGenerics_0.42.0               crisprDesignData_0.99.14         
-    ## [17] crisprDesign_0.99.127             crisprBase_1.1.5                 
+    ##  [1] crisprScoreData_1.1.3             ExperimentHub_2.5.0              
+    ##  [3] AnnotationHub_3.5.0               BiocFileCache_2.5.0              
+    ##  [5] dbplyr_2.2.1                      BSgenome.Hsapiens.UCSC.hg38_1.4.4
+    ##  [7] BSgenome_1.65.2                   rtracklayer_1.57.0               
+    ##  [9] Biostrings_2.65.2                 XVector_0.37.0                   
+    ## [11] GenomicRanges_1.49.1              GenomeInfoDb_1.33.5              
+    ## [13] IRanges_2.31.2                    S4Vectors_0.35.1                 
+    ## [15] BiocGenerics_0.43.1               crisprDesignData_0.99.17         
+    ## [17] crisprDesign_0.99.133             crisprBase_1.1.5                 
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] rjson_0.2.21                  ellipsis_0.3.2               
-    ##  [3] Rbowtie_1.36.0                rstudioapi_0.13              
-    ##  [5] bit64_4.0.5                   interactiveDisplayBase_1.33.0
-    ##  [7] AnnotationDbi_1.57.1          fansi_1.0.2                  
-    ##  [9] xml2_1.3.3                    cachem_1.0.6                 
-    ## [11] knitr_1.37                    jsonlite_1.8.0               
-    ## [13] Rsamtools_2.11.0              png_0.1-7                    
-    ## [15] shiny_1.7.1                   BiocManager_1.30.16          
-    ## [17] readr_2.1.2                   compiler_4.2.0               
-    ## [19] httr_1.4.2                    basilisk_1.9.2               
-    ## [21] assertthat_0.2.1              Matrix_1.4-0                 
-    ## [23] fastmap_1.1.0                 cli_3.3.0                    
-    ## [25] later_1.3.0                   htmltools_0.5.2              
-    ## [27] prettyunits_1.1.1             tools_4.2.0                  
-    ## [29] glue_1.6.2                    GenomeInfoDbData_1.2.7       
-    ## [31] crisprBowtie_1.1.1            dplyr_1.0.8                  
-    ## [33] rappdirs_0.3.3                Rcpp_1.0.8.3                 
-    ## [35] Biobase_2.55.0                vctrs_0.3.8                  
-    ## [37] crisprBwa_1.1.2               crisprScore_1.1.13           
-    ## [39] xfun_0.30                     stringr_1.4.0                
-    ## [41] mime_0.12                     lifecycle_1.0.1              
-    ## [43] restfulr_0.0.13               XML_3.99-0.9                 
-    ## [45] zlibbioc_1.41.0               basilisk.utils_1.9.1         
-    ## [47] vroom_1.5.7                   VariantAnnotation_1.41.3     
-    ## [49] hms_1.1.1                     promises_1.2.0.1             
-    ## [51] MatrixGenerics_1.7.0          parallel_4.2.0               
-    ## [53] SummarizedExperiment_1.25.3   yaml_2.3.5                   
-    ## [55] curl_4.3.2                    memoise_2.0.1                
-    ## [57] reticulate_1.25               biomaRt_2.51.3               
-    ## [59] stringi_1.7.6                 RSQLite_2.2.12               
-    ## [61] BiocVersion_3.15.0            highr_0.9                    
-    ## [63] BiocIO_1.5.0                  randomForest_4.7-1           
-    ## [65] GenomicFeatures_1.47.13       filelock_1.0.2               
-    ## [67] BiocParallel_1.29.18          rlang_1.0.4                  
-    ## [69] pkgconfig_2.0.3               matrixStats_0.61.0           
-    ## [71] bitops_1.0-7                  evaluate_0.15                
-    ## [73] lattice_0.20-45               purrr_0.3.4                  
-    ## [75] GenomicAlignments_1.31.2      bit_4.0.4                    
-    ## [77] tidyselect_1.1.2              magrittr_2.0.2               
-    ## [79] R6_2.5.1                      generics_0.1.2               
-    ## [81] DelayedArray_0.21.2           DBI_1.1.2                    
-    ## [83] pillar_1.7.0                  withr_2.5.0                  
-    ## [85] KEGGREST_1.35.0               RCurl_1.98-1.6               
-    ## [87] tibble_3.1.6                  dir.expiry_1.3.0             
-    ## [89] crayon_1.5.0                  utf8_1.2.2                   
-    ## [91] tzdb_0.2.0                    rmarkdown_2.13               
-    ## [93] progress_1.2.2                grid_4.2.0                   
-    ## [95] blob_1.2.2                    digest_0.6.29                
+    ##  [3] Rbowtie_1.37.0                rstudioapi_0.14              
+    ##  [5] bit64_4.0.5                   interactiveDisplayBase_1.35.0
+    ##  [7] AnnotationDbi_1.59.1          fansi_1.0.3                  
+    ##  [9] xml2_1.3.3                    codetools_0.2-18             
+    ## [11] cachem_1.0.6                  knitr_1.40                   
+    ## [13] jsonlite_1.8.0                Rsamtools_2.13.4             
+    ## [15] png_0.1-7                     shiny_1.7.2                  
+    ## [17] BiocManager_1.30.18           readr_2.1.2                  
+    ## [19] compiler_4.2.1                httr_1.4.4                   
+    ## [21] basilisk_1.9.2                assertthat_0.2.1             
+    ## [23] Matrix_1.4-1                  fastmap_1.1.0                
+    ## [25] cli_3.3.0                     later_1.3.0                  
+    ## [27] htmltools_0.5.3               prettyunits_1.1.1            
+    ## [29] tools_4.2.1                   glue_1.6.2                   
+    ## [31] GenomeInfoDbData_1.2.8        crisprBowtie_1.1.1           
+    ## [33] dplyr_1.0.9                   rappdirs_0.3.3               
+    ## [35] Rcpp_1.0.9                    Biobase_2.57.1               
+    ## [37] vctrs_0.4.1                   crisprBwa_1.1.3              
+    ## [39] crisprScore_1.1.14            xfun_0.32                    
+    ## [41] stringr_1.4.1                 mime_0.12                    
+    ## [43] lifecycle_1.0.1               restfulr_0.0.15              
+    ## [45] XML_3.99-0.10                 zlibbioc_1.43.0              
+    ## [47] basilisk.utils_1.9.1          vroom_1.5.7                  
+    ## [49] VariantAnnotation_1.43.3      hms_1.1.2                    
+    ## [51] promises_1.2.0.1              MatrixGenerics_1.9.1         
+    ## [53] parallel_4.2.1                SummarizedExperiment_1.27.1  
+    ## [55] yaml_2.3.5                    curl_4.3.2                   
+    ## [57] memoise_2.0.1                 reticulate_1.25              
+    ## [59] biomaRt_2.53.2                stringi_1.7.8                
+    ## [61] RSQLite_2.2.16                BiocVersion_3.16.0           
+    ## [63] highr_0.9                     BiocIO_1.7.1                 
+    ## [65] randomForest_4.7-1.1          GenomicFeatures_1.49.6       
+    ## [67] filelock_1.0.2                BiocParallel_1.31.12         
+    ## [69] rlang_1.0.4                   pkgconfig_2.0.3              
+    ## [71] matrixStats_0.62.0            bitops_1.0-7                 
+    ## [73] evaluate_0.16                 lattice_0.20-45              
+    ## [75] purrr_0.3.4                   GenomicAlignments_1.33.1     
+    ## [77] bit_4.0.4                     tidyselect_1.1.2             
+    ## [79] magrittr_2.0.3                R6_2.5.1                     
+    ## [81] generics_0.1.3                DelayedArray_0.23.1          
+    ## [83] DBI_1.1.3                     pillar_1.8.1                 
+    ## [85] KEGGREST_1.37.3               RCurl_1.98-1.8               
+    ## [87] tibble_3.1.8                  dir.expiry_1.5.0             
+    ## [89] crayon_1.5.1                  utf8_1.2.2                   
+    ## [91] tzdb_0.3.0                    rmarkdown_2.15.2             
+    ## [93] progress_1.2.2                grid_4.2.1                   
+    ## [95] blob_1.2.3                    digest_0.6.29                
     ## [97] xtable_1.8-4                  httpuv_1.6.5                 
     ## [99] Rbwa_1.1.0
 
@@ -548,7 +533,7 @@ sessionInfo()
 <div id="ref-deweirdt2021optimization" class="csl-entry">
 
 DeWeirdt, Peter C, Kendall R Sanson, Annabel K Sangree, Mudra Hegde,
-Ruth E Hanna, Marissa N Feeley, Audrey L Griffith, et al., et al. 2021.
+Ruth E Hanna, Marissa N Feeley, Audrey L Griffith, et al. 2021.
 “Optimization of AsCas12a for Combinatorial Genetic Screens in Human
 Cells.” *Nature Biotechnology* 39 (1): 94–104.
 
@@ -575,8 +560,8 @@ Identified in a CRISPR Screen for Pairwise Genetic Interactions.”
 <div id="ref-ran2013double" class="csl-entry">
 
 Ran, F Ann, Patrick D Hsu, Chie-Yu Lin, Jonathan S Gootenberg, Silvana
-Konermann, Alexandro E Trevino, David A Scott, et al., et al. 2013.
-“Double Nicking by RNA-Guided CRISPR Cas9 for Enhanced Genome Editing
+Konermann, Alexandro E Trevino, David A Scott, et al. 2013. “Double
+Nicking by RNA-Guided CRISPR Cas9 for Enhanced Genome Editing
 Specificity.” *Cell* 154 (6): 1380–89.
 
 </div>

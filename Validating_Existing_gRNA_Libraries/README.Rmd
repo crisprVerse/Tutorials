@@ -1,5 +1,6 @@
 ---
 title: "Validating existing gRNA libraries"
+author: Jean-Philippe Fortin, Luke Hoberecht
 output: 
   github_document:
     toc: true
@@ -9,15 +10,12 @@ output:
 options("knitr.graphics.auto_pdf"=TRUE)
 ```
 
-Authors: Jean-Philippe Fortin
-
-Date: July 8, 2022
-
-
 # Introduction
 
-In this vignette, we characterize a small mouse CRISPR knockout (CRISPRko) library that was designed to target tumor suppressors. 
-The library was obtained from Addgene, and is stored in `.\extdata`.
+In this vignette, we characterize a small mouse CRISPR knockout (CRISPRko) 
+library that was designed to target tumor suppressors. 
+The library was obtained from Addgene, and is stored in the 
+folder `extdata` in the current directory.
 
 # Loading necessary packages
 
@@ -68,7 +66,7 @@ This can be changed to a different length if needed,
 for instance 19nt:
 
 ```{r, eval=FALSE}
-# Not sunr
+# Not run
 spacerLength(SpCas9) <- 19
 ```
 
@@ -79,8 +77,12 @@ We next need to define a bowtie index that we will use for alignment:
 bowtie_index <- "/Users/fortinj2/crisprIndices/bowtie/mm10/mm10"
 ```
 
+For instructions on how to build a Bowtie index from a given reference
+genome, see the [genome index tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Building_Genome_Indices) or the [crisprBowtie page](https://github.com/crisprVerse/crisprBowtie) .
 
-We first map the gRNAs to the reference genome with perfect match to obtain genomic coordinates:
+
+We first map the gRNAs to the reference genome with perfect match to
+obtain genomic coordinates of those gRNAs:
 
 ```{r}
 spacers <- unique(data$spacer_20mer)
@@ -138,13 +140,8 @@ ids <- paste0("gRNA_", seq_len(nrow(data)))
 head(ids)
 ```
 
-
-
-While it is not necessary, we will unique names to the spacers:
-
-
-
-Ready to build the object with the constructor function in crisprDesign:
+We are now ready to build the `GuideSet` object using the constructor 
+function `GuideSet` from `crisprDesign`:
 
 ```{r}
 gs <- GuideSet(ids=ids,
@@ -160,15 +157,25 @@ gs$gene_symbol <- data$gene_symbol
 
 
 
-The `GuideSet` object, and `crisprDesign`, provide rich functionalities to annotate and manipulate gRNAs; see the main `crisprDesign` vignette for more details. For the rest of this vignette, we only focus on characterizing the off-targets.
+The `GuideSet` object, and [crisprDesign](https://github.com/crisprVerse/crisprDesign), provide rich functionalities
+to annotate and manipulate gRNAs. See the [CRISPRko design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9) 
+to get an overview of the functionalities. For the rest of 
+this tutorial, we only focus on characterizing the off-targets.
 
 
 # Off-target characterization
 
-Having a `GuideSet` object, it is now a piece of cake to characterize the off-targets. We characterize off-targets using the bowtie aligner, with up to 3 mismatches between the spacer (gRNA) and protospacer (target DNA) sequences.
+Having a `GuideSet` object, it is now a piece of cake to 
+characterize the off-targets. We characterize off-targets 
+using the bowtie aligner, with up to 3 mismatches between 
+the spacer (gRNA) and protospacer (target DNA) sequences.
 The function `addSpacerAlignments` accomplishes that. 
 
-It has an optional argument `txObject` that can be used to provide gene model data to put the off-targets in a gene model context. We made such objects available for human and mouse in the `crisprDesignData` package (see `txdb_human` and `txdb_mouse).
+It has an optional argument `txObject` that can be used 
+to provide gene model data to put the off-targets in a 
+gene model context. We made such objects available for human and mouse
+in the [crisprDesignData](https://github.com/crisprVerse/crisprDesignData)
+package (see `txdb_human` and `txdb_mouse`).
 
 
 
@@ -185,9 +192,12 @@ gs <- addSpacerAlignments(gs,
 ```
 
 
-The alignments are stored in a metadata column called `alignments`. See ?getSpacerAlignments for more details about what the different columns are. 
+The alignments are stored in a metadata column called `alignments`. 
+See `?getSpacerAlignments` for more details about what the 
+different columns are. 
 
-As an example, we can access the on- and off-target alignments of the first gRNA using the following:
+As an example, we can access the on- and off-target alignments of 
+the first gRNA using the following commands:
 
 
 ```{r, eval=TRUE}
@@ -196,13 +206,15 @@ aln
 ```
 
 
-We can also add CFD and MIT scores to the off-targets to characterize the likelihood of SpCas9 to cut at the off-targets:
+We can also add CFD and MIT scores to the off-targets to
+characterize the likelihood of SpCas9 to cut at the off-targets:
 
 ```{r, eval=TRUE}
 gs <- addOffTargetScores(gs)
 ```
 
-The scores range from 0 to 1, and a higher score indicates a higher probability of the off-target to occur. 
+The scores range from 0 to 1, and a higher score indicates a higher 
+probability of the off-target to occur. 
 
 
 
