@@ -194,6 +194,12 @@ gRNAs per gene using the `n_guides` and `gene_field` (to identify gRNAs
 by gene target) parameters. We will also use the same distance method 
 and minimum distance edit parameters as in the example above.
 
+Note that this requires a `rank` column in the metadata columns of the GuideSet object to be able to select best guides first. For the purpose of this tutorial, we will create a mock rank column. In practice, to learn how to rank gRNAs, see the [Cas9 gRNA design tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9).
+
+```{r}
+gs$rank <- 1:length(gs)
+```
+
 NOTE: it is advised to first complete other steps in gRNA design
 (annotating, filtering, and ranking gRNAs in the `GuideSet`) prior to 
 using this function; this will ensure the library contains the best 
@@ -201,11 +207,8 @@ gRNAs. As this example did not rank gRNAs, we are notified that
 rankings are assigned by the order in which gRNAs appear in our input.
 
 ```{r}
-df <- data.frame(ID=names(gs),
-                 spacer=gs$protospacer,
-                 opsBarcode=gs$opsBarcode,
-                 gene_symbol=gs$gene_symbol)
-opsLibrary <- designOpsLibrary(df,
+opsLibrary <- designOpsLibrary(gs,
+                               n_cycles=n_cycles,
                                n_guides=4,
                                gene_field="gene_symbol",
                                min_dist_edit=5,
@@ -235,27 +238,23 @@ gs_mras <- findSpacers(target_region,
                        bsgenome=BSgenome.Hsapiens.UCSC.hg38)
 gs_mras$gene_symbol <- "MRAS"
 gs_mras$gene_id <- "ENSG00000158186"
+gs_mras$rank <- 1:length(gs_mras)
 ```
 
-then add barcodes and construct the `data.frame`:
+then add barcodes:
 
 ```{r}
 ## add OPS barcodes
 gs_mras <- addOpsBarcodes(gs_mras,
                           n_cycles=n_cycles)
-
-## construct data.frame
-df_mras <- data.frame(ID=names(gs_mras),
-                      spacer=gs_mras$protospacer,
-                      opsBarcode=gs_mras$opsBarcode,
-                      gene_symbol=gs_mras$gene_symbol)
 ```
 
 which we then pass with our other parameters to `updateOpsLibrary`:
 
 ```{r}
 opsLibrary <- updateOpsLibrary(opsLibrary,
-                               df_mras,
+                               gs_mras,
+                               n_cycles=n_cycles,
                                n_guides=4,
                                gene_field="gene_symbol",
                                min_dist_edit=5,

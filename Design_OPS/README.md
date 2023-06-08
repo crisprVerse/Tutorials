@@ -219,13 +219,13 @@ dist <- getBarcodeDistanceMatrix(barcodes[1:5],
 dist
 ```
 
-    ## 5 x 5 sparse Matrix of class "dtCMatrix"
+    ## 5 x 5 diagonal matrix of class "ddiMatrix"
     ##          AGCAGTGA CAGCAGTG AACTCAAC AAACTCAA TGCTGTTG
-    ## CCATGTGT        .        .        .        .        .
-    ## TTGTATGG        .        .        .        .        .
-    ## CCTTGTTA        .        .        .        .        .
-    ## GATGGGAC        .        .        .        .        .
-    ## TGATGGGA        .        .        .        .        .
+    ## CCATGTGT        0        .        .        .        .
+    ## TTGTATGG        .        0        .        .        .
+    ## CCTTGTTA        .        .        0        .        .
+    ## GATGGGAC        .        .        .        0        .
+    ## TGATGGGA        .        .        .        .        0
 
 Using this function with large sets of barcodes can be taxing on memory.
 To manage this, it is recommended to set `splitByChunks=TRUE` and
@@ -240,6 +240,16 @@ per gene using the `n_guides` and `gene_field` (to identify gRNAs by
 gene target) parameters. We will also use the same distance method and
 minimum distance edit parameters as in the example above.
 
+Note that this requires a `rank` column in the metadata columns of the
+GuideSet object to be able to select best guides first. For the purpose
+of this tutorial, we will create a mock rank column. In practice, to
+learn how to rank gRNAs, see the [Cas9 gRNA design
+tutorial](https://github.com/crisprVerse/Tutorials/tree/master/Design_CRISPRko_Cas9).
+
+``` r
+gs$rank <- 1:length(gs)
+```
+
 NOTE: it is advised to first complete other steps in gRNA design
 (annotating, filtering, and ranking gRNAs in the `GuideSet`) prior to
 using this function; this will ensure the library contains the best
@@ -247,36 +257,58 @@ gRNAs. As this example did not rank gRNAs, we are notified that rankings
 are assigned by the order in which gRNAs appear in our input.
 
 ``` r
-df <- data.frame(ID=names(gs),
-                 spacer=gs$protospacer,
-                 opsBarcode=gs$opsBarcode,
-                 gene_symbol=gs$gene_symbol)
-opsLibrary <- designOpsLibrary(df,
+opsLibrary <- designOpsLibrary(gs,
+                               n_cycles=n_cycles,
                                n_guides=4,
                                gene_field="gene_symbol",
                                min_dist_edit=5,
                                dist_method="hamming")
-```
-
-    ## Since 'rank' column is not provided, using default order has ranking.
-
-``` r
 opsLibrary
 ```
 
-    ##                  ID               spacer opsBarcode gene_symbol rank
-    ## HRAS      spacer_73 ACTTGCAGCTCATGCAGCCG   ACTTGCAG        HRAS   10
-    ## HRAS1     spacer_76 CTGAACCCTCCTGATGAGAG   CTGAACCC        HRAS   13
-    ## HRAS2     spacer_79 CAGCCGGGGCCACTCTCATC   CAGCCGGG        HRAS   16
-    ## HRAS3    spacer_131 TGGGTCACATGGGTCCCGGG   TGGGTCAC        HRAS   68
-    ## KRAS     spacer_531 AAAGAAAAGATGAGCAAAGA   AAAGAAAA        KRAS    1
-    ## KRAS1    spacer_533 TTCTCGAACTAATGTATAGA   TTCTCGAA        KRAS    3
-    ## KRAS2    spacer_539 GGAGGATGCTTTTTATACAT   GGAGGATG        KRAS    9
-    ## KRAS3    spacer_564 AACTCTTTTAATTTGTTCTC   AACTCTTT        KRAS   34
-    ## NRAS       spacer_1 CCATGTGTGGTGATGTAACA   CCATGTGT        NRAS    1
-    ## spacer_2   spacer_2 TTGTATGGGATTGCCATGTG   TTGTATGG        NRAS    2
-    ## spacer_4   spacer_4 GATGGGACTCAGGGTTGTAT   GATGGGAC        NRAS    4
-    ## NRAS1      spacer_6 AGCAGTGATGATGGGACTCA   AGCAGTGA        NRAS    6
+    ## GuideSet object with 12 ranges and 9 metadata columns:
+    ##              seqnames    ranges strand |          protospacer            pam
+    ##                 <Rle> <IRanges>  <Rle> |       <DNAStringSet> <DNAStringSet>
+    ##    spacer_67    chr11    532670      + | ACTTGCAGCTCATGCAGCCG            GGG
+    ##    spacer_68    chr11    532675      - | CTGAACCCTCCTGATGAGAG            TGG
+    ##    spacer_69    chr11    532684      + | CAGCCGGGGCCACTCTCATC            AGG
+    ##    spacer_78    chr11    532751      - | ATCCCTCCTTTCCCAGGGAG            TGG
+    ##   spacer_186    chr12  25209843      - | AAAGAAAAGATGAGCAAAGA            TGG
+    ##          ...      ...       ...    ... .                  ...            ...
+    ##   spacer_207    chr12  25225776      + | ACTCTTTTAATTTGTTCTCT            GGG
+    ##     spacer_1     chr1 114708532      - | CCATGTGTGGTGATGTAACA            AGG
+    ##     spacer_2     chr1 114708545      - | TTGTATGGGATTGCCATGTG            TGG
+    ##     spacer_4     chr1 114708559      - | GATGGGACTCAGGGTTGTAT            GGG
+    ##     spacer_6     chr1 114708568      - | AGCAGTGATGATGGGACTCA            GGG
+    ##               pam_site  cut_site      region gene_symbol         gene_id
+    ##              <numeric> <numeric> <character> <character>     <character>
+    ##    spacer_67    532670    532667   region_11        HRAS ENSG00000174775
+    ##    spacer_68    532675    532678   region_11        HRAS ENSG00000174775
+    ##    spacer_69    532684    532681   region_11        HRAS ENSG00000174775
+    ##    spacer_78    532751    532754   region_11        HRAS ENSG00000174775
+    ##   spacer_186  25209843  25209846   region_31        KRAS ENSG00000133703
+    ##          ...       ...       ...         ...         ...             ...
+    ##   spacer_207  25225776  25225773   region_26        KRAS ENSG00000133703
+    ##     spacer_1 114708532 114708535    region_4        NRAS ENSG00000213281
+    ##     spacer_2 114708545 114708548    region_4        NRAS ENSG00000213281
+    ##     spacer_4 114708559 114708562    region_4        NRAS ENSG00000213281
+    ##     spacer_6 114708568 114708571    region_4        NRAS ENSG00000213281
+    ##                  opsBarcode      rank
+    ##              <DNAStringSet> <integer>
+    ##    spacer_67       ACTTGCAG        67
+    ##    spacer_68       CTGAACCC        68
+    ##    spacer_69       CAGCCGGG        69
+    ##    spacer_78       ATCCCTCC        78
+    ##   spacer_186       AAAGAAAA       186
+    ##          ...            ...       ...
+    ##   spacer_207       ACTCTTTT       207
+    ##     spacer_1       CCATGTGT         1
+    ##     spacer_2       TTGTATGG         2
+    ##     spacer_4       GATGGGAC         4
+    ##     spacer_6       AGCAGTGA         6
+    ##   -------
+    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: SpCas9
 
 ## Adding gRNAs to an existing OPS library
 
@@ -300,56 +332,73 @@ gs_mras <- findSpacers(target_region,
                        bsgenome=BSgenome.Hsapiens.UCSC.hg38)
 gs_mras$gene_symbol <- "MRAS"
 gs_mras$gene_id <- "ENSG00000158186"
+gs_mras$rank <- 1:length(gs_mras)
 ```
 
-then add barcodes and construct the `data.frame`:
+then add barcodes:
 
 ``` r
 ## add OPS barcodes
 gs_mras <- addOpsBarcodes(gs_mras,
                           n_cycles=n_cycles)
-
-## construct data.frame
-df_mras <- data.frame(ID=names(gs_mras),
-                      spacer=gs_mras$protospacer,
-                      opsBarcode=gs_mras$opsBarcode,
-                      gene_symbol=gs_mras$gene_symbol)
 ```
 
 which we then pass with our other parameters to `updateOpsLibrary`:
 
 ``` r
 opsLibrary <- updateOpsLibrary(opsLibrary,
-                               df_mras,
+                               gs_mras,
+                               n_cycles=n_cycles,
                                n_guides=4,
                                gene_field="gene_symbol",
                                min_dist_edit=5,
                                dist_method="hamming")
-```
-
-    ## Since 'rank' column is not provided, using default order has ranking.
-
-``` r
 opsLibrary
 ```
 
-    ##                  ID               spacer opsBarcode gene_symbol rank
-    ## HRAS      spacer_73 ACTTGCAGCTCATGCAGCCG   ACTTGCAG        HRAS   10
-    ## HRAS1     spacer_76 CTGAACCCTCCTGATGAGAG   CTGAACCC        HRAS   13
-    ## HRAS2     spacer_79 CAGCCGGGGCCACTCTCATC   CAGCCGGG        HRAS   16
-    ## HRAS3    spacer_131 TGGGTCACATGGGTCCCGGG   TGGGTCAC        HRAS   68
-    ## KRAS     spacer_531 AAAGAAAAGATGAGCAAAGA   AAAGAAAA        KRAS    1
-    ## KRAS1    spacer_533 TTCTCGAACTAATGTATAGA   TTCTCGAA        KRAS    3
-    ## KRAS2    spacer_539 GGAGGATGCTTTTTATACAT   GGAGGATG        KRAS    9
-    ## KRAS3    spacer_564 AACTCTTTTAATTTGTTCTC   AACTCTTT        KRAS   34
-    ## MRAS       spacer_4 GGGGAGGTTGTCACTGGGGA   GGGGAGGT        MRAS    4
-    ## MRAS1     spacer_19 CCACCACCAGCTTGTATGTG   CCACCACC        MRAS   19
-    ## MRAS2     spacer_34 CCCCACATACAAGCTGGTGG   CCCCACAT        MRAS   34
-    ## MRAS3     spacer_37 CACATACAAGCTGGTGGTGG   CACATACA        MRAS   37
-    ## NRAS       spacer_1 CCATGTGTGGTGATGTAACA   CCATGTGT        NRAS    1
-    ## spacer_2   spacer_2 TTGTATGGGATTGCCATGTG   TTGTATGG        NRAS    2
-    ## spacer_4   spacer_4 GATGGGACTCAGGGTTGTAT   GATGGGAC        NRAS    4
-    ## NRAS1      spacer_6 AGCAGTGATGATGGGACTCA   AGCAGTGA        NRAS    6
+    ## GuideSet object with 16 ranges and 9 metadata columns:
+    ##              seqnames    ranges strand |          protospacer            pam
+    ##                 <Rle> <IRanges>  <Rle> |       <DNAStringSet> <DNAStringSet>
+    ##    spacer_67    chr11    532670      + | ACTTGCAGCTCATGCAGCCG            GGG
+    ##    spacer_68    chr11    532675      - | CTGAACCCTCCTGATGAGAG            TGG
+    ##    spacer_69    chr11    532684      + | CAGCCGGGGCCACTCTCATC            AGG
+    ##    spacer_78    chr11    532751      - | ATCCCTCCTTTCCCAGGGAG            TGG
+    ##   spacer_186    chr12  25209843      - | AAAGAAAAGATGAGCAAAGA            TGG
+    ##          ...      ...       ...    ... .                  ...            ...
+    ##    spacer_34     chr3 138373035      - | TGTCAATCTCCGTATGTTTC            AGG
+    ##     spacer_1     chr1 114708532      - | CCATGTGTGGTGATGTAACA            AGG
+    ##     spacer_2     chr1 114708545      - | TTGTATGGGATTGCCATGTG            TGG
+    ##     spacer_4     chr1 114708559      - | GATGGGACTCAGGGTTGTAT            GGG
+    ##     spacer_6     chr1 114708568      - | AGCAGTGATGATGGGACTCA            GGG
+    ##               pam_site  cut_site      region gene_symbol         gene_id
+    ##              <numeric> <numeric> <character> <character>     <character>
+    ##    spacer_67    532670    532667   region_11        HRAS ENSG00000174775
+    ##    spacer_68    532675    532678   region_11        HRAS ENSG00000174775
+    ##    spacer_69    532684    532681   region_11        HRAS ENSG00000174775
+    ##    spacer_78    532751    532754   region_11        HRAS ENSG00000174775
+    ##   spacer_186  25209843  25209846   region_31        KRAS ENSG00000133703
+    ##          ...       ...       ...         ...         ...             ...
+    ##    spacer_34 138373035 138373038    region_5        MRAS ENSG00000158186
+    ##     spacer_1 114708532 114708535    region_4        NRAS ENSG00000213281
+    ##     spacer_2 114708545 114708548    region_4        NRAS ENSG00000213281
+    ##     spacer_4 114708559 114708562    region_4        NRAS ENSG00000213281
+    ##     spacer_6 114708568 114708571    region_4        NRAS ENSG00000213281
+    ##                  opsBarcode      rank
+    ##              <DNAStringSet> <integer>
+    ##    spacer_67       ACTTGCAG        67
+    ##    spacer_68       CTGAACCC        68
+    ##    spacer_69       CAGCCGGG        69
+    ##    spacer_78       ATCCCTCC        78
+    ##   spacer_186       AAAGAAAA       186
+    ##          ...            ...       ...
+    ##    spacer_34       TGTCAATC        34
+    ##     spacer_1       CCATGTGT         1
+    ##     spacer_2       TTGTATGG         2
+    ##     spacer_4       GATGGGAC         4
+    ##     spacer_6       AGCAGTGA         6
+    ##   -------
+    ##   seqinfo: 640 sequences (1 circular) from hg38 genome
+    ##   crisprNuclease: SpCas9
 
 # Session Info
 
@@ -373,13 +422,13 @@ sessionInfo()
     ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.65.2                  
-    ##  [3] rtracklayer_1.57.0                Biostrings_2.65.2                
-    ##  [5] XVector_0.37.0                    GenomicRanges_1.49.1             
-    ##  [7] GenomeInfoDb_1.33.5               IRanges_2.31.2                   
-    ##  [9] S4Vectors_0.35.1                  BiocGenerics_0.43.1              
-    ## [11] crisprDesignData_0.99.17          crisprDesign_0.99.133            
-    ## [13] crisprBase_1.1.5                 
+    ##  [1] BSgenome.Hsapiens.UCSC.hg38_1.4.4 BSgenome_1.66.2                  
+    ##  [3] rtracklayer_1.57.0                Biostrings_2.65.3                
+    ##  [5] XVector_0.37.1                    GenomicRanges_1.49.1             
+    ##  [7] GenomeInfoDb_1.33.7               IRanges_2.31.2                   
+    ##  [9] S4Vectors_0.35.3                  BiocGenerics_0.43.4              
+    ## [11] crisprDesignData_0.99.29          crisprDesign_1.3.1               
+    ## [13] crisprBase_1.3.2                 
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] bitops_1.0-7                  matrixStats_0.62.0           
@@ -389,33 +438,33 @@ sessionInfo()
     ##   [9] R6_2.5.1                      DBI_1.1.3                    
     ##  [11] tidyselect_1.1.2              prettyunits_1.1.1            
     ##  [13] bit_4.0.4                     curl_4.3.2                   
-    ##  [15] compiler_4.2.1                crisprBowtie_1.1.1           
-    ##  [17] cli_3.3.0                     Biobase_2.57.1               
-    ##  [19] basilisk.utils_1.9.1          crisprScoreData_1.1.3        
+    ##  [15] compiler_4.2.1                crisprBowtie_1.3.4           
+    ##  [17] cli_3.4.0                     Biobase_2.57.1               
+    ##  [19] basilisk.utils_1.9.3          crisprScoreData_1.3.0        
     ##  [21] xml2_1.3.3                    DelayedArray_0.23.1          
     ##  [23] randomForest_4.7-1.1          readr_2.1.2                  
     ##  [25] rappdirs_0.3.3                stringr_1.4.1                
     ##  [27] digest_0.6.29                 Rsamtools_2.13.4             
-    ##  [29] rmarkdown_2.15.2              crisprScore_1.1.14           
-    ##  [31] basilisk_1.9.2                pkgconfig_2.0.3              
+    ##  [29] rmarkdown_2.16                crisprScore_1.3.3            
+    ##  [31] basilisk_1.9.6                pkgconfig_2.0.3              
     ##  [33] htmltools_0.5.3               MatrixGenerics_1.9.1         
     ##  [35] dbplyr_2.2.1                  fastmap_1.1.0                
-    ##  [37] rlang_1.0.4                   rstudioapi_0.14              
+    ##  [37] rlang_1.0.6                   rstudioapi_0.14              
     ##  [39] RSQLite_2.2.16                shiny_1.7.2                  
     ##  [41] BiocIO_1.7.1                  generics_0.1.3               
     ##  [43] jsonlite_1.8.0                BiocParallel_1.31.12         
-    ##  [45] dplyr_1.0.9                   VariantAnnotation_1.43.3     
+    ##  [45] dplyr_1.0.10                  VariantAnnotation_1.43.3     
     ##  [47] RCurl_1.98-1.8                magrittr_2.0.3               
-    ##  [49] GenomeInfoDbData_1.2.8        Matrix_1.4-1                 
+    ##  [49] GenomeInfoDbData_1.2.8        Matrix_1.5-3                 
     ##  [51] Rcpp_1.0.9                    fansi_1.0.3                  
-    ##  [53] reticulate_1.25               Rbowtie_1.37.0               
-    ##  [55] lifecycle_1.0.1               stringi_1.7.8                
-    ##  [57] yaml_2.3.5                    SummarizedExperiment_1.27.1  
+    ##  [53] reticulate_1.26               Rbowtie_1.37.0               
+    ##  [55] lifecycle_1.0.3               stringi_1.7.8                
+    ##  [57] yaml_2.3.5                    SummarizedExperiment_1.27.2  
     ##  [59] zlibbioc_1.43.0               BiocFileCache_2.5.0          
-    ##  [61] AnnotationHub_3.5.0           grid_4.2.1                   
+    ##  [61] AnnotationHub_3.5.1           grid_4.2.1                   
     ##  [63] blob_1.2.3                    promises_1.2.0.1             
     ##  [65] parallel_4.2.1                ExperimentHub_2.5.0          
-    ##  [67] crayon_1.5.1                  dir.expiry_1.5.0             
+    ##  [67] crayon_1.5.1                  dir.expiry_1.5.1             
     ##  [69] lattice_0.20-45               GenomicFeatures_1.49.6       
     ##  [71] hms_1.1.2                     KEGGREST_1.37.3              
     ##  [73] knitr_1.40                    pillar_1.8.1                 
@@ -424,7 +473,7 @@ sessionInfo()
     ##  [79] XML_3.99-0.10                 glue_1.6.2                   
     ##  [81] evaluate_0.16                 BiocManager_1.30.18          
     ##  [83] httpuv_1.6.5                  png_0.1-7                    
-    ##  [85] vctrs_0.4.1                   tzdb_0.3.0                   
+    ##  [85] vctrs_0.5.1                   tzdb_0.3.0                   
     ##  [87] purrr_0.3.4                   assertthat_0.2.1             
     ##  [89] cachem_1.0.6                  xfun_0.32                    
     ##  [91] mime_0.12                     xtable_1.8-4                 
