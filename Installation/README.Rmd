@@ -23,23 +23,25 @@ necessary for some of the [crisprVerse tutorials](https://github.com/crisprVerse
 ## Requirements
 
 The crisprVerse is supported for macOS, Linux and Windows machines.
-It requires R version >=4.2.1. Some of the third-party functionalities are not
+It requires R version >=4.4. Some of the third-party functionalities are not
 available for Windows machines (BWA alignment, and some of the scoring 
 functions). To download and install R, follow the instructions on the  [R-project website](https://www.r-project.org/).
 
 ## Bioconductor versions
 
 The Bioconductor project has 2 concurrent branches: `release` and `devel`.
-Currently (August 2022), the release branch is `3.15`, and the
-devel branch is `3.16`. Release versions are created twice a year. See the 
+Currently (July 2024), the release branch is `3.19`, and the
+devel branch is `3.20`. See the 
 [Bioconductor install page](https://www.bioconductor.org/install/) for
 more information regarding Bioconductor versions.
 
-The crisprVerse ecosystem is currently available on the Bioconductor
-devel branch (`3.16`). Earlier versions of some of our packages are available 
-on the release branch, but we do not recommend using the release branch
-as most of the functionalities described in the tutorials require updated
-functionalities only available on the devel branch. 
+The crisprVerse ecosystem is currently available on both the Bioconductor 
+release and devel branches. The release branch, updated twice a year, 
+is frozen in time and contains stable releases of the packages.
+The devel branch is built over night and 
+contains the latest changes pushed to the GitHub repositories.
+We recommend using the release branch, unless new features are only
+available in the devel branch. 
 
 
 ## Installing the core crisprVerse packages
@@ -55,6 +57,18 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install(version="devel")
 BiocManager::install("crisprVerse")
 ```
+
+To install the packages from the release branch instead:
+
+
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(version="release")
+BiocManager::install("crisprVerse")
+```
+
 
 
 This will install the following packages:
